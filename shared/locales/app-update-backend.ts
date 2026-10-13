@@ -1,0 +1,16 @@
+export const en: Record<string, string> = {
+  '发布信息不完整或格式不正确，请到发布页面查看。': 'The release information is incomplete or invalid. Open the release page for details.',
+  '校验清单格式不正确，请到发布页面重新下载。': 'The checksum list is invalid. Download the update from the release page.',
+  '安装包的校验信息不一致，已停止下载。': 'The installer checksums do not match. The download has been stopped.',
+  '连接超时，请重试。': 'The connection timed out. Please try again.',
+  '下载文件或所在目录已被修改，请重新下载。': 'The downloaded file or its directory has changed. Please download it again.',
+  '下载文件不完整或校验失败，请重新下载。': 'The downloaded file is incomplete or failed verification. Please download it again.',
+  '无法完成更新请求，请检查网络或下载目录后重试。': 'The update request could not be completed. Check your connection and download directory, then try again.',
+  '此版本没有适合当前安装方式的更新包，请到发布页面选择下载。': 'This release has no update package for the current installation. Choose a download on the release page.',
+  '此版本缺少 SHA256 校验清单，请到发布页面查看。': 'This release has no SHA256 checksum list. Open the release page for details.',
+  '请先下载并校验更新包。': 'Download and verify the update package first.',
+  '更新下载地址不受信任，已停止请求。': 'The update download address is not trusted. The request has been stopped.',
+  'GitHub 暂时限制了更新请求，请稍后重试或打开发布页面。': 'GitHub has temporarily limited update requests. Try again later or open the release page.',
+  '无法获取更新文件（HTTP {{status}}），请稍后重试。': 'The update file could not be retrieved (HTTP {{status}}). Please try again later.',
+  '无法写入更新包，请检查磁盘空间和目录权限。': 'The update package could not be written. Check your disk space and directory permissions.',
+};
