@@ -8,12 +8,14 @@
 
 | 目标 | 构建环境 | 产物 |
 | --- | --- | --- |
-| Windows x64 | Windows x64 | NSIS 安装包、免安装 `.exe` |
-| Windows arm64 | Windows x64，交叉构建 | NSIS 安装包、免安装 `.exe` |
-| macOS x64 | Intel macOS | `.dmg`、`.zip` |
+| Windows x86_64 | Windows x86_64 | NSIS 安装包、免安装 `.exe` |
+| Windows arm64 | Windows x86_64，交叉构建 | NSIS 安装包、免安装 `.exe` |
+| macOS x86_64 | Intel macOS | `.dmg`、`.zip` |
 | macOS arm64 | Intel macOS，交叉构建 | `.dmg`、`.zip` |
-| Linux x64 | Ubuntu x64 | `.AppImage`、`.deb` |
+| Linux x86_64 | Ubuntu x86_64 | `.AppImage`、`.deb` |
 | Linux arm64 | Ubuntu arm64 | `.AppImage`、`.deb` |
+
+下载说明和安装包文件名统一使用 `x86_64`。Electron 和 electron-builder 的构建参数仍使用 `x64`，DEB 包内部的架构字段仍为 `amd64`。
 
 架构检查会读取打包后程序的可执行文件。交叉构建不等于在目标设备上运行过程序，发布说明应分别记录自动检查、安装测试及尚未测试的范围。
 
@@ -49,7 +51,7 @@ npm run dist -- --mac --x64 --publish never
 npm run dist -- --linux --x64 --publish never
 ```
 
-产物位于 `release/`。`npm run pack` 生成本机平台的解包应用。如果指定 `--config.electronDist`，其中的 Electron 可执行文件必须与目标架构一致，不能把 x64 运行时用于 arm64 包。
+产物位于 `release/`。`npm run pack` 生成本机平台的解包应用。如果指定 `--config.electronDist`，其中的 Electron 可执行文件必须与目标架构一致，不能把 x86_64 运行时用于 arm64 包。
 
 `.env` 是构建输入，不会打进安装包。在已安装程序旁放置 `.env`，不会改变它的题库目标或内置 Client ID。程序没有自动升级功能，用户通过下载新版本升级。
 
@@ -69,7 +71,7 @@ npm run dist -- --linux --x64 --publish never
 
 工作流将题库固定为 `Yawn-Sean/Daily_CF_Problems`，要求提供发布者 Client ID，并拒绝与 `package.json` 不一致的 `release_tag`。工作流会保存构建产物，全部目标成功后才创建发布草稿，由维护者手动发布。草稿对应本次运行选定的确切提交，并使用 `docs/releases/` 中对应版本的说明。创建版本标签或发布草稿不会再次触发构建。
 
-Windows x64、macOS x64 和 Linux x64/arm64 任务还会启动实际打包程序，检查启动和预加载接口。Windows arm64 与 macOS arm64 使用交叉构建，执行架构及归档检查。这些检查不覆盖安装向导或已登录的 GitHub 会话。
+Windows x86_64、macOS x86_64 和 Linux x86_64/arm64 任务还会启动实际打包程序，检查启动和预加载接口。Windows arm64 与 macOS arm64 使用交叉构建，执行架构及归档检查。这些检查不覆盖安装向导或已登录的 GitHub 会话。
 
 构建任务只有仓库只读权限，汇总草稿的任务才有写入发布文件的权限。打包使用 `--publish never`，发布文件是独立步骤。工作流不会替换已公开版本的安装包。
 
