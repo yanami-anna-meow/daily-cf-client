@@ -56,15 +56,15 @@ describe('complete release asset set', () => {
   it('requires twelve unique filenames and allows any upload order', () => {
     expect(new Set(files).size).toBe(12);
     expect(validateAssetSet(version, [...files].reverse())).toEqual([...files].sort());
-    expect(files).toContain('Daily-CF-0.3.24-arm64-portable.exe');
-    expect(files).toContain('Daily-CF-0.3.24-mac-arm64.dmg');
+    expect(files).toContain('Daily-CF-0.3.24-windows-arm64-portable.exe');
+    expect(files).toContain('Daily-CF-0.3.24-macos-arm64.dmg');
     expect(files).toContain('Daily-CF-0.3.24-linux-arm64.AppImage');
     expect(files).toContain('Daily-CF-0.3.24-linux-x86_64.AppImage');
     expect(files).toContain('Daily-CF-0.3.24-linux-x86_64.deb');
-    expect(files).toContain('Daily-CF-0.3.24-x86_64-nsis.exe');
-    expect(files).toContain('Daily-CF-0.3.24-x86_64-portable.exe');
-    expect(files).toContain('Daily-CF-0.3.24-mac-x86_64.dmg');
-    expect(files).toContain('Daily-CF-0.3.24-mac-x86_64.zip');
+    expect(files).toContain('Daily-CF-0.3.24-windows-x86_64-nsis.exe');
+    expect(files).toContain('Daily-CF-0.3.24-windows-x86_64-portable.exe');
+    expect(files).toContain('Daily-CF-0.3.24-macos-x86_64.dmg');
+    expect(files).toContain('Daily-CF-0.3.24-macos-x86_64.zip');
   });
 
   it('rejects missing, duplicate, previous-version, and unexpected files', () => {
