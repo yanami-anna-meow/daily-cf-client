@@ -34,9 +34,22 @@ function validSnapshot(value: unknown): value is GitStoreSnapshot {
 }
 function unsafe(message: string, code: GitStoreErrorCode): never { throw new GitStoreError(message, code); }
 
+async function checkDirectoryAncestors(root: string, code: GitStoreErrorCode): Promise<void> {
+  const parsed = path.parse(root);
+  let current = parsed.root;
+  for (const segment of root.slice(parsed.root.length).split(path.sep).filter(Boolean)) {
+    current = path.join(current, segment);
+    try {
+      const stat = await fs.promises.lstat(current);
+      if (stat.isSymbolicLink() || !stat.isDirectory()) unsafe('Repository root must have real directory parents.', code);
+    } catch (error) { if (errno(error) === 'ENOENT') return; throw error; }
+  }
+}
+
 /** No operation follows filesystem links. Writes replace an exclusively created
  * sibling file, rather than opening an existing destination for truncation. */
 class CheckedFiles {
+  private canonicalRoot?: string;
   constructor(readonly root: string, readonly code: GitStoreErrorCode, private readonly track?: (input: string, removed?: boolean) => void) {}
 
   resolve(input: string): string {
@@ -54,7 +67,17 @@ class CheckedFiles {
     try {
       const actualRoot = await fs.promises.realpath(this.root);
       const canonical = (value: string) => process.platform === 'win32' ? value.toLowerCase() : value;
-      if (canonical(actualRoot) !== canonical(this.root)) unsafe('Local repository directory has a linked parent.', this.code);
+      const actual = canonical(actualRoot);
+      if (this.canonicalRoot === undefined) {
+        if (actual !== canonical(this.root)) {
+          // Windows short (8.3) names also expand in realpath. Accept a different
+          // spelling only after checking every ancestor for actual links. Keep
+          // this verified baseline so subsequent access detects retargeting.
+          await checkDirectoryAncestors(this.root, this.code);
+          if (canonical(await fs.promises.realpath(this.root)) !== actual) unsafe('Local repository changed during access.', this.code);
+        }
+        this.canonicalRoot = actual;
+      } else if (actual !== this.canonicalRoot) unsafe('Local repository directory has a linked parent.', this.code);
     } catch (error) {
       if (errno(error) === 'ELOOP') unsafe('Local repository has a filesystem link cycle.', this.code);
       if (missing && errno(error) === 'ENOENT') return null;
@@ -197,15 +220,7 @@ export class GitStore {
   }
 
   private async checkAncestors(): Promise<void> {
-    const parsed = path.parse(this.root);
-    let current = parsed.root;
-    for (const segment of this.root.slice(parsed.root.length).split(path.sep).filter(Boolean)) {
-      current = path.join(current, segment);
-      try {
-        const stat = await fs.promises.lstat(current);
-        if (stat.isSymbolicLink() || !stat.isDirectory()) unsafe('Repository root must have real directory parents.', 'unsafe_root');
-      } catch (error) { if (errno(error) === 'ENOENT') return; throw error; }
-    }
+    await checkDirectoryAncestors(this.root, 'unsafe_root');
   }
 
   private async identity(): Promise<boolean> {
