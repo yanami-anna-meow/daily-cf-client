@@ -60,8 +60,8 @@ function peResources(buffer) {
 function verifyEmbeddedIcons(workspace, executable, version) {
   const sourcePath = path.join(workspace, 'docs/assets/icon.ico');
   const source = fs.readFileSync(sourcePath), images = icoImages(source);
-  const paths = [executable, path.join(workspace, `release/Daily-CF-${version}-x86_64-nsis.exe`),
-    path.join(workspace, `release/Daily-CF-${version}-x86_64-portable.exe`)];
+  const paths = [executable, path.join(workspace, `release/Daily-CF-${version}-windows-x86_64-nsis.exe`),
+    path.join(workspace, `release/Daily-CF-${version}-windows-x86_64-portable.exe`)];
   const artifacts = paths.map(file => {
     const resources = peResources(fs.readFileSync(file));
     const groups = resources.filter(item => item.ids[0] === 14);
