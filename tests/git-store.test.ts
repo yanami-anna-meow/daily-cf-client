@@ -31,11 +31,12 @@ async function windowsShortPath(directory: string): Promise<string> {
   const { stdout } = await promisify(execFile)('powershell.exe', [
     '-NoProfile', '-NonInteractive', '-Command',
     '(New-Object -ComObject Scripting.FileSystemObject).GetFolder($env:DAILY_CF_TEST_SHORT_PATH).ShortPath',
-  ], { env: { ...process.env, DAILY_CF_TEST_SHORT_PATH: directory }, windowsHide: true });
+  ], { env: { ...process.env, DAILY_CF_TEST_SHORT_PATH: directory }, windowsHide: true, timeout: 10_000 });
   return stdout.trim();
 }
 
 describe('GitStore ownership and atomic generation publication', () => {
+  // Allow for PowerShell cold startup on shared Windows runners; keep the subprocess bounded too.
   it.skipIf(process.platform !== 'win32')('accepts a real Windows short parent path and still rejects a later root junction', async context => {
     const shortParent = await windowsShortPath(temporary);
     if (shortParent.toLowerCase() === temporary.toLowerCase()) {
@@ -60,7 +61,7 @@ describe('GitStore ownership and atomic generation publication', () => {
     await expect(generation.fs.promises.writeFile(path.join(generation.gitdir, 'objects/sentinel'), 'changed')).rejects.toMatchObject({ code: 'git_store_corrupt' });
     await expect(aliasStore.open()).rejects.toMatchObject({ code: 'unsafe_root' });
     expect(await fs.promises.readFile(path.join(outsideGit, 'objects/sentinel'), 'utf8')).toBe('unchanged');
-  });
+  }, 15_000);
 
   it('opens a missing or empty directory without creating local files', async () => {
     expect(await store.open()).toBeNull();
