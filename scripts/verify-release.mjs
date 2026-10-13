@@ -14,13 +14,10 @@ const repository = 'Yawn-Sean/Daily_CF_Problems';
 export function artifactNames(version, platform, arch) {
   assert.match(version, /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/);
   assert(platforms.includes(platform) && architectures.includes(arch), 'Unsupported release target');
-  if (platform === 'windows') return ['nsis.exe', 'portable.exe'].map(suffix => `Daily-CF-${version}-${arch}-${suffix}`);
+  const name = arch === 'x64' ? 'x86_64' : arch;
+  if (platform === 'windows') return ['nsis.exe', 'portable.exe'].map(suffix => `Daily-CF-${version}-${name}-${suffix}`);
   return (platform === 'macos' ? ['dmg', 'zip'] : ['AppImage', 'deb'])
-    .map(extension => {
-      // electron-builder uses the package format's conventional name for x86-64.
-      const suffix = platform === 'linux' && arch === 'x64' ? (extension === 'deb' ? 'amd64' : 'x86_64') : arch;
-      return `Daily-CF-${version}-${platform === 'macos' ? 'mac' : 'linux'}-${suffix}.${extension}`;
-    });
+    .map(extension => `Daily-CF-${version}-${platform === 'macos' ? 'mac' : 'linux'}-${name}.${extension}`);
 }
 
 export function binaryArchitecture(bytes, platform) {
