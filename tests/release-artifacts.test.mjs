@@ -1,5 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { createRequire } from 'node:module';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { createPlatformPackager } from '../scripts/package.mjs';
 import { artifactNames, binaryArchitecture, validateAssetSet } from '../scripts/verify-release.mjs';
+
+const require = createRequire(import.meta.url);
+const { Arch, Packager, Platform } = require('electron-builder');
+const { toLinuxArchString } = require('builder-util');
 
 function executable(platform, arch) {
   const bytes = Buffer.alloc(512);
@@ -54,7 +60,11 @@ describe('complete release asset set', () => {
     expect(files).toContain('Daily-CF-0.3.24-mac-arm64.dmg');
     expect(files).toContain('Daily-CF-0.3.24-linux-arm64.AppImage');
     expect(files).toContain('Daily-CF-0.3.24-linux-x86_64.AppImage');
-    expect(files).toContain('Daily-CF-0.3.24-linux-amd64.deb');
+    expect(files).toContain('Daily-CF-0.3.24-linux-x86_64.deb');
+    expect(files).toContain('Daily-CF-0.3.24-x86_64-nsis.exe');
+    expect(files).toContain('Daily-CF-0.3.24-x86_64-portable.exe');
+    expect(files).toContain('Daily-CF-0.3.24-mac-x86_64.dmg');
+    expect(files).toContain('Daily-CF-0.3.24-mac-x86_64.zip');
   });
 
   it('rejects missing, duplicate, previous-version, and unexpected files', () => {
@@ -68,5 +78,32 @@ describe('complete release asset set', () => {
     expect(() => artifactNames(version, 'windows', 'ia32')).toThrow();
     expect(() => artifactNames(version, 'unknown', 'x64')).toThrow();
     expect(() => artifactNames('../0.3.24', 'linux', 'x64')).toThrow();
+  });
+});
+
+describe('electron-builder artifact naming', () => {
+  let info;
+  beforeAll(async () => {
+    info = new Packager({ publish: 'never' });
+    await info.validateConfig();
+  });
+
+  it.each(targets)('expands the actual $platform $arch package patterns to the expected filenames', ({ platform, arch }) => {
+    const targetPlatform = { windows: Platform.WINDOWS, macos: Platform.MAC, linux: Platform.LINUX }[platform];
+    const packager = createPlatformPackager(info, targetPlatform);
+    const packageTypes = platform === 'windows' ? [['nsis', 'exe'], ['portable', 'exe']]
+      : platform === 'macos' ? [['dmg', 'dmg'], ['zip', 'zip']] : [['appImage', 'AppImage'], ['deb', 'deb']];
+    const names = packageTypes.map(([target, extension]) => packager.expandArtifactNamePattern(info.config[target], extension, Arch[arch]));
+    expect(names).toEqual(artifactNames(info.metadata.version, platform, arch));
+  });
+
+  it('keeps simultaneous architecture expansions independent and preserves Debian architecture identifiers', () => {
+    const packager = createPlatformPackager(info, Platform.LINUX);
+    const originalPattern = info.config.linux.artifactName;
+    const names = [Arch.x64, Arch.arm64, Arch.x64].map(arch => packager.expandArtifactNamePattern({}, 'deb', arch));
+    expect(names).toEqual(['x86_64', 'arm64', 'x86_64'].map(arch => `Daily-CF-${info.metadata.version}-linux-${arch}.deb`));
+    expect(info.config.linux.artifactName).toBe(originalPattern);
+    expect(toLinuxArchString(Arch.x64, 'deb')).toBe('amd64');
+    expect(toLinuxArchString(Arch.arm64, 'deb')).toBe('arm64');
   });
 });
