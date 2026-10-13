@@ -92,13 +92,13 @@
       ]
     },
     "nsis": {
-      "artifactName": "Daily-CF-${version}-${arch}-nsis.${ext}",
+      "artifactName": "Daily-CF-${version}-windows-${arch}-nsis.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true
     },
     "portable": {
-      "artifactName": "Daily-CF-${version}-${arch}-portable.${ext}"
+      "artifactName": "Daily-CF-${version}-windows-${arch}-portable.${ext}"
     },
     "mac": {
       "icon": "docs/assets/icon.icns",
@@ -107,7 +107,7 @@
         "zip"
       ],
       "category": "public.app-category.education",
-      "artifactName": "Daily-CF-${version}-mac-${arch}.${ext}"
+      "artifactName": "Daily-CF-${version}-macos-${arch}.${ext}"
     },
     "linux": {
       "icon": "docs/assets/icon.png",
