@@ -50,7 +50,8 @@ async function basic() {
 async function pack() {
   const result = await git.packObjects({ fs, gitdir, oids: [...new Set(oids)], write: true });
   const packPath = path.join(gitdir, 'objects', 'pack', result.filename);
-  await git.indexPack({ fs, dir: directory, gitdir, filepath: packPath });
+  // indexPack joins filepath onto dir; an absolute POSIX path would repeat dir.
+  await git.indexPack({ fs, dir: directory, gitdir, filepath: path.relative(directory, packPath) });
   for (const oid of new Set(oids)) await fs.promises.unlink(loosePath(oid));
   return { packPath, idxPath: packPath.replace(/\.pack$/, '.idx') };
 }

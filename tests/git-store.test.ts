@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import git from 'isomorphic-git';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GitStore } from '../electron/git-store';
@@ -11,14 +13,55 @@ const snapshot = { revision: '1'.repeat(40), branch: 'main' };
 let temporary: string;
 let root: string;
 let store: GitStore;
+let temporaryRoot: string;
 beforeEach(async () => {
-  temporary = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'daily-cf-store-'));
+  temporaryRoot = await fs.promises.realpath(os.tmpdir());
+  temporary = await fs.promises.mkdtemp(path.join(temporaryRoot, 'daily-cf-store-'));
   root = path.join(temporary, 'library.git');
   store = new GitStore(root, 'fixture/library');
 });
-afterEach(async () => { vi.restoreAllMocks(); await fs.promises.rm(temporary, { recursive: true, force: true }); });
+afterEach(async () => {
+  vi.restoreAllMocks();
+  const relative = path.relative(temporaryRoot, path.resolve(temporary));
+  if (!relative.startsWith('daily-cf-store-') || relative.includes(path.sep) || path.isAbsolute(relative)) throw new Error('Unsafe store fixture cleanup.');
+  await fs.promises.rm(temporary, { recursive: true, force: true });
+});
+
+async function windowsShortPath(directory: string): Promise<string> {
+  const { stdout } = await promisify(execFile)('powershell.exe', [
+    '-NoProfile', '-NonInteractive', '-Command',
+    '(New-Object -ComObject Scripting.FileSystemObject).GetFolder($env:DAILY_CF_TEST_SHORT_PATH).ShortPath',
+  ], { env: { ...process.env, DAILY_CF_TEST_SHORT_PATH: directory }, windowsHide: true });
+  return stdout.trim();
+}
 
 describe('GitStore ownership and atomic generation publication', () => {
+  it.skipIf(process.platform !== 'win32')('accepts a real Windows short parent path and still rejects a later root junction', async context => {
+    const shortParent = await windowsShortPath(temporary);
+    if (shortParent.toLowerCase() === temporary.toLowerCase()) {
+      context.skip('8.3 short names are disabled on this test volume');
+      return;
+    }
+    const aliasRoot = path.join(shortParent, 'library.git');
+    const aliasStore = new GitStore(aliasRoot, 'fixture/library');
+    const generation = await aliasStore.create();
+    await aliasStore.publish(generation, snapshot);
+    await generation.fs.promises.writeFile(path.join(generation.gitdir, 'objects/sentinel'), 'original');
+    expect((await new GitStore(aliasRoot, 'fixture/library').open())?.snapshot).toEqual(snapshot);
+    expect(await generation.fs.promises.readFile(path.join(generation.gitdir, 'objects/sentinel'), 'utf8')).toBe('original');
+
+    const outside = path.join(temporary, 'outside-root');
+    const outsideGit = path.join(outside, generation.id);
+    await fs.promises.mkdir(path.join(outsideGit, 'objects'), { recursive: true });
+    await fs.promises.writeFile(path.join(outsideGit, 'objects/sentinel'), 'unchanged');
+    await fs.promises.rename(root, path.join(temporary, 'original-root'));
+    await fs.promises.symlink(outside, root, 'junction');
+    await expect(generation.fs.promises.readFile(path.join(generation.gitdir, 'objects/sentinel'))).rejects.toMatchObject({ code: 'git_store_corrupt' });
+    await expect(generation.fs.promises.writeFile(path.join(generation.gitdir, 'objects/sentinel'), 'changed')).rejects.toMatchObject({ code: 'git_store_corrupt' });
+    await expect(aliasStore.open()).rejects.toMatchObject({ code: 'unsafe_root' });
+    expect(await fs.promises.readFile(path.join(outsideGit, 'objects/sentinel'), 'utf8')).toBe('unchanged');
+  });
+
   it('opens a missing or empty directory without creating local files', async () => {
     expect(await store.open()).toBeNull();
     await expect(fs.promises.stat(root)).rejects.toMatchObject({ code: 'ENOENT' });
