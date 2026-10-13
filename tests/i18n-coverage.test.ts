@@ -127,6 +127,7 @@ function audit() {
 }
 
 describe('application translation coverage', () => {
+  // Building a TypeScript program for the full source tree can exceed 5s on shared CI runners.
   it('covers literal messages and documents every dynamic translation source', () => {
     const result = audit();
     const report = join(root, 'test-results', 'i18n-audit.json');
@@ -137,5 +138,5 @@ describe('application translation coverage', () => {
     expect(result.untranslatedCandidates.filter(finding => !finding.inCatalog && !finding.nonMessage),
       'Uncatalogued Chinese literal candidates; review test-results/i18n-audit.json').toEqual([]);
     expect(result.catalogConflicts, 'Conflicting translations; see test-results/i18n-audit.json').toEqual([]);
-  });
+  }, 15_000);
 });
