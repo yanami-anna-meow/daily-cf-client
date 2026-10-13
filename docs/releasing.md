@@ -15,7 +15,7 @@ The release workflow builds each platform and architecture separately:
 | Linux x86_64 | Ubuntu x86_64 | `.AppImage`, `.deb` |
 | Linux arm64 | Ubuntu arm64 | `.AppImage`, `.deb` |
 
-Download labels and package filenames use `x86_64` consistently. Electron and electron-builder still use `x64` in build parameters, and DEB packages retain `amd64` in their internal architecture metadata.
+Package filenames follow `Daily-CF-<version>-<system>-<architecture>`, followed by the package type and extension. System names are `windows`, `macos`, and `linux`; architecture names are `x86_64` and `arm64`. Electron and electron-builder still use `x64` in build parameters, and DEB packages retain `amd64` in their internal architecture metadata.
 
 Architecture checks inspect the packaged executable. Cross-compilation does not test the app on that target hardware. Record automated checks, installation tests, and any untested areas in the release notes.
 
