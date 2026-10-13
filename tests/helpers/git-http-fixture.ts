@@ -1,5 +1,5 @@
 import { execFile, spawn, type ChildProcess } from 'node:child_process';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -69,7 +69,10 @@ export interface GitHttpFixture {
 export async function startGitFixture(
   initialFiles: Record<string, string | null> = { 'README.md': '# Test upstream\n' },
 ): Promise<GitHttpFixture> {
-  const directory = await mkdtemp(join(tmpdir(), fixturePrefix));
+  // macOS exposes its temporary directory through /var -> /private/var. The
+  // production store correctly rejects linked ancestors; use a real test root.
+  const temporaryRoot = await realpath(tmpdir());
+  const directory = await mkdtemp(join(temporaryRoot, fixturePrefix));
   const remoteWorktree = join(directory, 'worktree');
   const remoteGitDir = join(directory, 'remote.git');
   const gitConfig = join(directory, 'gitconfig');
@@ -145,7 +148,7 @@ export async function startGitFixture(
     await Promise.all([stopped, ...exits]);
     // Never recursively remove anything except the isolated directory created above.
     const target = resolve(directory);
-    if (!target.startsWith(`${resolve(tmpdir())}${sep}`) || !basename(target).startsWith(fixturePrefix)) {
+    if (!target.startsWith(`${temporaryRoot}${sep}`) || !basename(target).startsWith(fixturePrefix)) {
       throw new Error('Unexpected Git fixture cleanup path');
     }
     await rm(target, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
