@@ -57,17 +57,17 @@ Output goes to `release/`. `npm run pack` creates an unpacked app for the host p
 
 [ci.yml](../.github/workflows/ci.yml) runs dependency installation, auditing, tests, and builds on Windows, macOS, and Ubuntu. These checks do not need a personal GitHub login or write to the problem repository.
 
-[release.yml](../.github/workflows/release.yml) runs manually or when a `v*` tag is pushed. Before running it, set the public Actions repository variable `DAILY_CF_GITHUB_CLIENT_ID` under **Settings → Secrets and variables → Actions → Variables**. The workflow passes it to the build as `GITHUB_CLIENT_ID`. It is a Client ID, not a Client Secret or access token; local `.env` files still use `GITHUB_CLIENT_ID`.
+[release.yml](../.github/workflows/release.yml) runs manually from the Actions page. Before running it, set the public Actions repository variable `DAILY_CF_GITHUB_CLIENT_ID` under **Settings → Secrets and variables → Actions → Variables**. The workflow passes it to the build as `GITHUB_CLIENT_ID`. It is a Client ID, not a Client Secret or access token; local `.env` files still use `GITHUB_CLIENT_ID`.
 
 For a release:
 
 1. Update `package.json`, the lockfile, and the browser preview version together.
 2. Prepare the English release notes with a Chinese section and list the intended packages.
-3. Check the committed source, then run the workflow with a matching `release_tag`, such as `v0.3.24` for version `0.3.24`. Pushing that tag also triggers the workflow.
+3. Check the committed source, select its branch on the Actions page, and run **Build desktop installers** with a matching `release_tag`, such as `v0.3.24` for version `0.3.24`.
 4. Wait for all six build jobs. They test the source, package it, and check the output architecture, app archive, and expected files.
 5. Review the draft's assets, SHA-256 checksums, release notes, and test results, then publish it.
 
-The workflow fixes the problem repository to `Yawn-Sean/Daily_CF_Problems`, requires the publisher Client ID, and rejects a tag that does not match `package.json`. Manual runs require `release_tag`. Both triggers store build artifacts and assemble a release draft only after all targets succeed; neither publishes it automatically. The draft uses the version's notes from `docs/releases/`.
+The workflow fixes the problem repository to `Yawn-Sean/Daily_CF_Problems`, requires the publisher Client ID, and rejects a `release_tag` that does not match `package.json`. It stores build artifacts and assembles a release draft only after all targets succeed; publication remains a manual step. The draft uses the exact commit selected for the run and the version's notes from `docs/releases/`. Creating the version tag or publishing the draft does not start another build.
 
 Windows x64, macOS x64, and Linux x64/arm64 jobs also launch the packaged app to check startup and its preload API. Windows arm64 and macOS arm64 are cross-built and receive architecture and archive checks. These checks do not cover installation wizards or an authenticated GitHub session.
 
