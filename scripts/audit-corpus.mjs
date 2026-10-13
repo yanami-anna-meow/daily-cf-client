@@ -10,7 +10,7 @@ const relativePath = (filename) => path.relative(checkout, filename).split(path.
 const commit = execFileSync('git', ['-C', checkout, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const remote = execFileSync('git', ['-C', checkout, 'remote', 'get-url', 'origin'], { encoding: 'utf8' }).trim();
 if (!/^https:\/\/github\.com\/Yawn-Sean\/Daily_CF_Problems(?:\.git)?\/?$/i.test(remote)) {
-  throw new Error(`审计目录必须来自官方上游仓库，当前 origin 为 ${remote}`);
+  throw new Error(`The audit checkout must use the official upstream repository; current origin: ${remote}`);
 }
 const bundled = await build({
   entryPoints: [path.join(workspace, 'shared/domain.ts')], bundle: true, format: 'esm',
@@ -18,7 +18,7 @@ const bundled = await build({
 });
 const { PARSER_VERSION, parseProblems } = await import(`data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].text).toString('base64')}`);
 const changedSources = execFileSync('git', ['-C', checkout, 'diff', '--name-only', 'HEAD', '--', 'daily_problems'], { encoding: 'utf8' }).trim();
-if (changedSources) throw new Error(`语料工作区已修改，不能将结果归属于固定上游提交：\n${changedSources}`);
+if (changedSources) throw new Error(`The corpus has local changes, so results cannot be attributed to a fixed upstream commit:\n${changedSources}`);
 
 async function listSheets(directory) {
   const entries = await fs.readdir(directory, { withFileTypes: true });
@@ -55,7 +55,7 @@ function sourceProblem(line, lineNumber, file) {
   const links = [...line.matchAll(/\[([^\]]+)\]\(\s*<?([^\s)>]+)>?(?:\s+["'][^"']*["'])?\s*\)/g)];
   const firstCell = line.trim().split('|')[1]?.trim() ?? '';
   if (!links.length) {
-    if (/^\*?\d+$/.test(firstCell)) fail(file, lineNumber, '数字难度行没有可识别的题目链接', { line });
+    if (/^\*?\d+$/.test(firstCell)) fail(file, lineNumber, 'A row with a numeric rating has no recognizable problem link.', { line });
     return null;
   }
   let selected;
@@ -80,13 +80,13 @@ function sourceProblem(line, lineNumber, file) {
       }
       const id = `cf${contestId}${normalIndex ? index.toLowerCase() : labelMatch[2].toLowerCase()}`;
       const labelMismatch = normalIndex && labelMatch && `cf${labelMatch[1]}${labelMatch[2].toLowerCase()}` !== id;
-      if (labelMismatch) warnings.push({ file, line: lineNumber, type: 'label-url-mismatch', label: link[1], canonicalId: id, url: url.toString(), message: '原仓库显示题号与题目 URL 不一致；保留 URL 题号并向用户展示来源警告。' });
+      if (labelMismatch) warnings.push({ file, line: lineNumber, type: 'label-url-mismatch', label: link[1], canonicalId: id, url: url.toString(), message: 'The upstream label and problem URL disagree; retain the ID from the URL and show a source warning.' });
       selected = { label: link[1], id, url: link[2], kind, labelMismatch: Boolean(labelMismatch) };
       break;
     } catch { /* Non-URL links are not problem links. */ }
   }
   if (!selected) {
-    fail(file, lineNumber, '题单数据行未能独立识别 Codeforces 题目链接', { line });
+    fail(file, lineNumber, 'Independent source inspection could not identify a Codeforces problem link in this row.', { line });
     return null;
   }
   const numeric = /^\*?\d+$/.test(firstCell);
@@ -95,7 +95,7 @@ function sourceProblem(line, lineNumber, file) {
 }
 
 const sheets = (await listSheets(path.join(checkout, 'daily_problems'))).sort();
-if (!sheets.length) throw new Error('没有发现 problems.md；请先配置 sparse-checkout 下载全部题单。');
+if (!sheets.length) throw new Error('No problems.md files found. Configure sparse checkout to include all problem sheets first.');
 // A Git index inventory independently verifies that sparse checkout did not omit
 // any tracked problems.md; merely checking the working tree would miss that.
 const trackedPaths = execFileSync('git', ['-C', checkout, 'ls-tree', '-r', '--name-only', 'HEAD', 'daily_problems'], { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 })
@@ -103,12 +103,12 @@ const trackedPaths = execFileSync('git', ['-C', checkout, 'ls-tree', '-r', '--na
 const tracked = trackedPaths.filter((name) => name.endsWith('/problems.md'));
 const trackedPathSet = new Set(trackedPaths);
 const actual = new Set(sheets.map(relativePath));
-for (const name of tracked) if (!actual.has(name)) fail(name, null, 'Git 提交中存在该题单，但稀疏工作区未检出');
+for (const name of tracked) if (!actual.has(name)) fail(name, null, 'This problem sheet is tracked in the Git commit but missing from the sparse checkout.');
 
 for (const filename of sheets) {
   const file = relativePath(filename);
   const date = sourceDate(file);
-  if (!date) { fail(file, null, '日期目录结构不合法'); continue; }
+  if (!date) { fail(file, null, 'The date directory structure is invalid.'); continue; }
   dates.push(date);
   counts.days++;
   const markdown = await fs.readFile(filename, 'utf8');
@@ -116,9 +116,9 @@ for (const filename of sheets) {
   counts.rows += expected.length;
   let parsed;
   try { parsed = parseProblems(markdown, date); }
-  catch (error) { fail(file, null, '解析器抛出异常', { error: String(error) }); continue; }
+  catch (error) { fail(file, null, 'The parser threw an exception.', { error: String(error) }); continue; }
   counts.parsed += parsed.length;
-  if (parsed.length !== expected.length) fail(file, null, '原始有效题目行数与解析结果数量不一致（漏题或多出题目）', { expected: expected.length, parsed: parsed.length });
+  if (parsed.length !== expected.length) fail(file, null, 'The parsed problem count differs from the valid source-row count (missing or extra problems).', { expected: expected.length, parsed: parsed.length });
   for (const [i, source] of expected.entries()) {
     matrix[source.ratingSource][source.kind]++;
     counts[source.rating === null ? 'unrated' : 'rated']++;
@@ -126,9 +126,9 @@ for (const filename of sheets) {
     const problem = parsed[i];
     if (!problem) continue;
     for (const field of ['id', 'label', 'url', 'rating', 'ratingSource', 'kind']) {
-      if (problem[field] !== source[field]) fail(file, source.line, `${field} 不符合原始题单`, { expected: source[field], parsed: problem[field], id: source.id });
+      if (problem[field] !== source[field]) fail(file, source.line, `${field} does not match the source problem sheet.`, { expected: source[field], parsed: problem[field], id: source.id });
     }
-    if (source.labelMismatch && !problem.sourceWarning) fail(file, source.line, '原仓库题号不一致但解析器没有提供来源警告', { id: source.id });
+    if (source.labelMismatch && !problem.sourceWarning) fail(file, source.line, 'The upstream problem IDs disagree, but the parser did not provide a source warning.', { id: source.id });
   }
 }
 
@@ -136,7 +136,7 @@ for (const mapping of customGymMappings) {
   const solutionPath = mapping.file.replace(/problems\.md$/, `solution/${mapping.id}.md`);
   mapping.solutionPath = solutionPath;
   mapping.solutionExists = trackedPathSet.has(solutionPath);
-  if (!mapping.solutionExists) fail(mapping.file, mapping.line, '特殊 Gym 题号映射缺少对应的原仓库官方题解文件佐证', { id: mapping.id, solutionPath });
+  if (!mapping.solutionExists) fail(mapping.file, mapping.line, 'The custom Gym ID mapping has no corresponding upstream editorial file to verify it.', { id: mapping.id, solutionPath });
 }
 for (const warning of warnings) {
   warning.solutionPath = warning.file.replace(/problems\.md$/, `solution/${warning.canonicalId}.md`);
@@ -145,18 +145,72 @@ for (const warning of warnings) {
 
 const report = {
   auditedAt: new Date().toISOString(), repository: 'Yawn-Sean/Daily_CF_Problems', remote, commit, parserVersion: PARSER_VERSION,
-  checkout: '.cache/upstream', scope: '全部 Git HEAD 已跟踪的 daily_problems/**/problems.md；浅克隆稀疏检出，无个人代码文件',
+  checkout: '.cache/upstream', scope: 'All daily_problems/**/problems.md files tracked at Git HEAD; shallow sparse checkout without personal submission files.',
   trackedSheets: tracked.length, dateRange: { first: dates.sort()[0], last: dates.at(-1) },
   counts, matrix, examples, customGymMappings, warnings, passed: failures.length === 0, failures,
 };
 await fs.mkdir(path.join(workspace, 'docs'), { recursive: true });
 await fs.writeFile(path.join(workspace, 'docs/corpus-audit.json'), `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-const rows = ['official', 'estimated', 'unknown'].map((source) => `| ${{ official: 'CF 官方（无星号数字）', estimated: '小羊估算（星号数字）', unknown: '未知 / 未评级' }[source]} | ${matrix[source].gym} | ${matrix[source].round} |`).join('\n');
-const samples = Object.entries(examples).map(([combination, sample]) => `- **${combination}**：${sample.date}，原始难度 \`${sample.difficultyCell}\`，题号 \`${sample.id}\`。[原始题单](https://github.com/Yawn-Sean/Daily_CF_Problems/blob/${commit}/${sample.file}#L${sample.line})， [题目](${sample.url})。`).join('\n');
+const rows = ['official', 'estimated', 'unknown'].map((source) => `| ${{ official: 'Codeforces rating (unstarred)', estimated: 'Estimated by Yawn Sean (starred)', unknown: 'Unknown / unrated' }[source]} | ${matrix[source].gym} | ${matrix[source].round} |`).join('\n');
+const samples = Object.entries(examples).map(([combination, sample]) => `- **${combination}**: ${sample.date}, source difficulty \`${sample.difficultyCell}\`, problem ID \`${sample.id}\`. [Source sheet](https://github.com/Yawn-Sean/Daily_CF_Problems/blob/${commit}/${sample.file}#L${sample.line}), [problem](${sample.url}).`).join('\n');
 const missing = ['official:gym', 'official:round', 'estimated:gym', 'estimated:round'].filter((key) => !examples[key]);
-const mappingNotes = customGymMappings.map((mapping) => `- [${mapping.file}:${mapping.line}](https://github.com/Yawn-Sean/Daily_CF_Problems/blob/${commit}/${mapping.file}#L${mapping.line})：URL 索引 \`${mapping.urlIndex}\`，原始标签 \`${mapping.label}\` → \`${mapping.id}\`；${mapping.solutionExists ? '对应官方题解文件已核实存在' : '缺少对应题解文件'}。`).join('\n');
-const warningNotes = warnings.map((warning) => `- [${warning.file}:${warning.line}](https://github.com/Yawn-Sean/Daily_CF_Problems/blob/${commit}/${warning.file}#L${warning.line})：标签 \`${warning.label}\`，URL 标识 \`${warning.canonicalId}\`；${warning.solutionExists ? 'URL 标识对应的官方题解文件存在' : 'URL 标识未发现对应题解文件'}。客户端保留 URL 题号，并展示来源警告。`).join('\n');
-const summary = `# 真实仓库题单解析审计\n\n本报告由 \`npm run test:corpus\` 自动生成。审计结果：**${report.passed ? '通过' : '未通过'}**。\n\n- 上游：[Yawn-Sean/Daily_CF_Problems](https://github.com/Yawn-Sean/Daily_CF_Problems)。\n- 提交：[\`${commit}\`](https://github.com/Yawn-Sean/Daily_CF_Problems/commit/${commit})。\n- 审计时间（UTC）：${report.auditedAt}。\n- 覆盖范围：${counts.days} 份真实题单，${counts.rows} 行有效题目，解析器输出 ${counts.parsed} 道题；Git 提交清单确认题单总数 ${tracked.length}，没有仅抽样检查。\n- 日期范围：${report.dateRange.first} 至 ${report.dateRange.last}。\n- 解析错误数：${failures.length}；原仓库来源警告数：${warnings.length}。\n\n## 难度来源与题目类型独立统计\n\n\`*1000\` 代表小羊估算难度，\`1000\` 代表 CF 官方难度；没有数字时来源为未知。题目类型只依据链接中的 \`/gym/\`、\`/contest/\` 或 \`/problemset/\` 路径识别，两者互不推导。\n\n| 难度来源 | Gym | 常规比赛 |\n| --- | ---: | ---: |\n${rows}\n\n${samples}\n\n${missing.length ? `本次真实语料未出现以下组合：${missing.join('、')}。缺失只是语料现状，不代表逻辑上不可能；单元测试另外覆盖四种已知来源与类型组合及缺失难度。` : '本次语料包含四种已知来源与类型组合；单元测试也独立覆盖四种组合及缺失难度。'}\n\n## 特殊 Gym 路径映射\n\n部分 Gym 导入题目使用数字或带点的原始 URL 索引，不能直接当作仓库文件名。以下 ${customGymMappings.length} 行通过同比赛的原仓库标签识别 canonical cf 题号，并独立核验 Git 提交内对应官方题解文件存在。\n\n${mappingNotes || '没有特殊映射。'}\n\n## 原仓库标签与链接不一致\n\n这些是原始资料问题，作为警告单独记录，不伪装成解析失败或悄悄更改原文。\n\n${warningNotes || '没有来源警告。'}\n\n## 检查方式与复现\n\n审计脚本从原始 Markdown 独立提取日期、题目行、URL、题号、数字与星号标记，再与生产解析器逐行比较；验证没有漏题或凭空多题，Gym 与常规比赛都保持仓库要求的 \`cf\` 文件名前缀。程序不使用生产解析器的日期、题号或 URL 辅助函数生成预期值。另以 \`git ls-tree\` 核对所有应检出的题单，避免稀疏检出漏文件造成虚假的全量通过。\n\n\`\`\`powershell\ngit clone --depth 1 --filter=blob:none --sparse https://github.com/Yawn-Sean/Daily_CF_Problems.git .cache/upstream\ngit -C .cache/upstream sparse-checkout set --no-cone '/README.md' '/daily_problems/**/problems.md'\nnpm run test:corpus\n\`\`\`\n\n这次测试固定在以上提交，不能证明未来所有可能的 Markdown 格式都受支持；更新本地克隆后再次执行即可审计新题单。完整机器可读结果与失败详情见 [corpus-audit.json](./corpus-audit.json)。\n${failures.length ? `\n## 失败记录\n\n\`\`\`json\n${JSON.stringify(failures, null, 2)}\n\`\`\`\n` : ''}`;
+const mappingNotes = customGymMappings.map((mapping) => `- [${mapping.file}:${mapping.line}](https://github.com/Yawn-Sean/Daily_CF_Problems/blob/${commit}/${mapping.file}#L${mapping.line}): URL index \`${mapping.urlIndex}\`, source label \`${mapping.label}\` → \`${mapping.id}\`; ${mapping.solutionExists ? 'the corresponding upstream editorial file exists' : 'the corresponding editorial file is missing'}.`).join('\n');
+const warningNotes = warnings.map((warning) => `- [${warning.file}:${warning.line}](https://github.com/Yawn-Sean/Daily_CF_Problems/blob/${commit}/${warning.file}#L${warning.line}): label \`${warning.label}\`, URL ID \`${warning.canonicalId}\`; ${warning.solutionExists ? 'an upstream editorial exists for the URL ID' : 'no editorial was found for the URL ID'}. The client retains the ID from the URL and shows a source warning.`).join('\n');
+const summary = `# Upstream problem-sheet parser audit
+
+English · [简体中文](zh-CN/corpus-audit.md)
+
+Generated by \`npm run test:corpus\`. Audit result: **${report.passed ? 'Passed' : 'Failed'}**.
+
+- Upstream: [Yawn-Sean/Daily_CF_Problems](https://github.com/Yawn-Sean/Daily_CF_Problems).
+- Commit: [\`${commit}\`](https://github.com/Yawn-Sean/Daily_CF_Problems/commit/${commit}).
+- Audited at (UTC): ${report.auditedAt}.
+- Coverage: ${counts.days} upstream problem sheets, ${counts.rows} valid source rows, and ${counts.parsed} parsed problems. The Git tree lists ${tracked.length} sheets; the audit checks the full set rather than a sample.
+- Date range: ${report.dateRange.first} to ${report.dateRange.last}.
+- Parser failures: ${failures.length}; upstream source warnings: ${warnings.length}.
+
+## Rating source and contest type
+
+\`*1000\` denotes Yawn Sean's estimated difficulty; \`1000\` denotes a Codeforces rating. A missing numeric rating has an unknown source. Contest type is identified only from the link's \`/gym/\`, \`/contest/\`, or \`/problemset/\` path. Neither property is inferred from the other.
+
+| Rating source | Gym | CF Round |
+| --- | ---: | ---: |
+${rows}
+
+${samples}
+
+${missing.length ? `The corpus contains no examples of these combinations: ${missing.join(', ')}. Their absence does not make them invalid; separate unit tests cover all four known rating-source/type combinations and missing ratings.` : 'The corpus contains all four known rating-source/type combinations. Separate unit tests also cover all four combinations and missing ratings.'}
+
+## Custom Gym URL mappings
+
+Some imported Gym problems use numeric or dotted URL indices that cannot serve directly as repository filenames. For the following ${customGymMappings.length} rows, the canonical \`cf\` ID comes from the upstream label for the same contest. The audit independently checks for the corresponding upstream editorial file in the Git commit.
+
+${mappingNotes || 'No custom mappings.'}
+
+## Upstream label and URL mismatches
+
+These source inconsistencies are recorded as warnings. They are not treated as parser failures, and the source text is not silently rewritten.
+
+${warningNotes || 'No source warnings.'}
+
+## Method and reproduction
+
+The script independently extracts dates, problem rows, URLs, IDs, numeric ratings, and star markers from the source Markdown, then compares each row with the production parser. It checks for missing or extra problems and verifies that both Gym and CF Round problems retain the repository's \`cf\` filename prefix. Expected values do not use the production parser's date, ID, or URL helpers. A separate \`git ls-tree\` inventory checks for sheets omitted by sparse checkout, so an incomplete checkout cannot produce a misleading full-corpus pass.
+
+\`\`\`sh
+git clone --depth 1 --filter=blob:none --sparse https://github.com/Yawn-Sean/Daily_CF_Problems.git .cache/upstream
+git -C .cache/upstream sparse-checkout set --no-cone '/README.md' '/daily_problems/**/problems.md'
+npm run test:corpus
+\`\`\`
+
+This result applies to the commit listed above and does not establish support for every future Markdown format. Update the local checkout and rerun the audit to check newer sheets. Machine-readable results and failure details are available in [corpus-audit.json](./corpus-audit.json).
+${failures.length ? `
+## Failures
+
+\`\`\`json
+${JSON.stringify(failures, null, 2)}
+\`\`\`
+` : ''}`;
 await fs.writeFile(path.join(workspace, 'docs/corpus-audit.md'), summary, 'utf8');
 console.log(JSON.stringify({ commit, ...counts, matrix, customGymMappings: customGymMappings.length, warnings: warnings.length, failures: failures.length, reports: ['docs/corpus-audit.json', 'docs/corpus-audit.md'] }, null, 2));
 if (failures.length) { console.error(JSON.stringify(failures.slice(0, 20), null, 2)); process.exitCode = 1; }
