@@ -188,10 +188,13 @@ export async function startGitFixture(
           chunks.push(bytes);
         }
         if (closed || response.destroyed) return;
+        const hasBody = entry.requestBodyBytes > 0;
         child = spawn(gitExecutable, ['http-backend'], {
           cwd: directory,
           windowsHide: true,
-          stdio: ['pipe', 'pipe', 'pipe'],
+          // Discovery can finish before a stdin pipe is written. A bodyless
+          // request needs only EOF, so avoid racing an empty write with exit.
+          stdio: [hasBody ? 'pipe' : 'ignore', 'pipe', 'pipe'],
           env: {
             ...gitEnvironment,
             GIT_PROJECT_ROOT: directory,
@@ -227,7 +230,7 @@ export async function startGitFixture(
           }
         };
         backend.once('error', fail);
-        backend.stdin!.on('error', fail);
+        if (hasBody) backend.stdin!.on('error', fail);
         backend.stderr!.on('data', bytes => { stderr = (stderr + String(bytes)).slice(-65_536); });
         backend.stdout!.on('data', (bytes: Buffer) => {
           if (response.destroyed || response.writableEnded) return;
@@ -266,7 +269,7 @@ export async function startGitFixture(
           else response.end();
         });
         response.once('close', () => { if (!response.writableEnded) backend.kill(); });
-        backend.stdin!.end(Buffer.concat(chunks));
+        if (hasBody) backend.stdin!.end(Buffer.concat(chunks));
       } catch (error) {
         child?.kill();
         if (!response.destroyed && !response.writableEnded) {
