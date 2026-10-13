@@ -8,12 +8,14 @@ The release workflow builds each platform and architecture separately:
 
 | Target | Build host | Packages |
 | --- | --- | --- |
-| Windows x64 | Windows x64 | NSIS installer, portable `.exe` |
-| Windows arm64 | Windows x64, cross-compiled | NSIS installer, portable `.exe` |
-| macOS x64 | Intel macOS | `.dmg`, `.zip` |
+| Windows x86_64 | Windows x86_64 | NSIS installer, portable `.exe` |
+| Windows arm64 | Windows x86_64, cross-compiled | NSIS installer, portable `.exe` |
+| macOS x86_64 | Intel macOS | `.dmg`, `.zip` |
 | macOS arm64 | Intel macOS, cross-compiled | `.dmg`, `.zip` |
-| Linux x64 | Ubuntu x64 | `.AppImage`, `.deb` |
+| Linux x86_64 | Ubuntu x86_64 | `.AppImage`, `.deb` |
 | Linux arm64 | Ubuntu arm64 | `.AppImage`, `.deb` |
+
+Download labels and package filenames use `x86_64` consistently. Electron and electron-builder still use `x64` in build parameters, and DEB packages retain `amd64` in their internal architecture metadata.
 
 Architecture checks inspect the packaged executable. Cross-compilation does not test the app on that target hardware. Record automated checks, installation tests, and any untested areas in the release notes.
 
@@ -49,7 +51,7 @@ npm run dist -- --mac --x64 --publish never
 npm run dist -- --linux --x64 --publish never
 ```
 
-Output goes to `release/`. `npm run pack` creates an unpacked app for the host platform. If supplying `--config.electronDist`, its Electron executable must match the target architecture; do not reuse an x64 runtime for an arm64 build.
+Output goes to `release/`. `npm run pack` creates an unpacked app for the host platform. If supplying `--config.electronDist`, its Electron executable must match the target architecture; do not reuse an x86_64 runtime for an arm64 build.
 
 `.env` is a build input and is not included in packages. Putting an `.env` beside an installed app does not change its repository or bundled Client ID. The app has no automatic updater; users upgrade by downloading a new package.
 
@@ -69,7 +71,7 @@ For a release:
 
 The workflow fixes the problem repository to `Yawn-Sean/Daily_CF_Problems`, requires the publisher Client ID, and rejects a `release_tag` that does not match `package.json`. It stores build artifacts and assembles a release draft only after all targets succeed; publication remains a manual step. The draft uses the exact commit selected for the run and the version's notes from `docs/releases/`. Creating the version tag or publishing the draft does not start another build.
 
-Windows x64, macOS x64, and Linux x64/arm64 jobs also launch the packaged app to check startup and its preload API. Windows arm64 and macOS arm64 are cross-built and receive architecture and archive checks. These checks do not cover installation wizards or an authenticated GitHub session.
+Windows x86_64, macOS x86_64, and Linux x86_64/arm64 jobs also launch the packaged app to check startup and its preload API. Windows arm64 and macOS arm64 are cross-built and receive architecture and archive checks. These checks do not cover installation wizards or an authenticated GitHub session.
 
 Build jobs have read-only repository access. The draft assembly job alone can write release assets. Packaging uses `--publish never`; publishing an installer is a separate step. The workflow refuses to replace assets of an already published release.
 
