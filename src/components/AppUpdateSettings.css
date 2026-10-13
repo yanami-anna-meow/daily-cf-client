@@ -1,0 +1,24 @@
+.app-update-settings { container-type: inline-size; }
+.app-update-versions { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 28px; margin-bottom: 15px; }
+.app-update-versions > div { display: flex; align-items: baseline; gap: 10px; font-size: 12px; }
+.app-update-versions > div > span { color: var(--muted); }
+.app-update-versions strong { font-weight: 600; }
+.app-update-versions > p { width: 100%; color: var(--soft); font-size: 11px; }
+.app-update-status { color: var(--soft); font-size: 12px; line-height: 1.8; }
+.app-update-status > p { display: flex; align-items: center; gap: 8px; }
+.app-update-status svg, .app-update-settings .alert > svg { flex-shrink: 0; }
+.app-update-description { color: var(--muted); font-size: 12px; line-height: 1.8; }
+.app-update-status:not(:empty) + .app-update-description { margin-top: 6px; }
+.app-update-progress { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+.app-update-progress progress { width: 100%; height: 6px; accent-color: var(--accent); }
+.app-update-progress > span { color: var(--soft); font-size: 11px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.app-update-filename { display: block; margin: 10px 0; color: var(--soft); font-size: 11px; font-family: var(--font-code); overflow-wrap: anywhere; user-select: text; }
+.app-update-settings > .alert { margin-top: 12px; }
+.app-update-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 18px; }
+.app-update-actions .text-button { margin-left: auto; }
+.app-update-confirm-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.app-update-unsaved { margin-top: 15px; }
+@container (max-width: 430px) {
+  .app-update-progress { align-items: stretch; flex-direction: column; gap: 6px; }
+  .app-update-actions .text-button { margin-left: 0; }
+}
