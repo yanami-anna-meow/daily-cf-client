@@ -16,7 +16,7 @@ Ratings retain the repository's notation: `1700` stays `1700`, and `*1700` keeps
 
 The original problem button opens the exact repository link in your default browser, including its query string and fragment. Codeforces login and verification happen there. The app does not fetch or embed problem statements. If a title and link disagree, a source warning lets you check them.
 
-## Updates and offline reading
+## Library updates and offline reading
 
 The desktop app keeps a local copy of the public problem repository. It checks for updates at startup, when you change pages, and when you click **Refresh**. The first download takes longer; later Git updates transfer only the data needed for the new version. You do not need Git installed.
 
@@ -29,6 +29,34 @@ Synchronization checks local Git data for damage. When possible, the app downloa
 Settings and encrypted login sessions are separate from the library. PRs and account information still use the GitHub API and its rate limits. An up-to-date library does not mean that PR data has refreshed successfully.
 
 The browser development preview does not keep a local Git repository. It uses GitHub's API and public file endpoints, so library browsing in that preview also uses API requests.
+
+## Update the app
+
+Open **Settings → App updates** and check for a new version. The app reads the latest published release from the [client repository](https://github.com/yanami-anna-meow/daily-cf-client/releases), separately from the problem library. You do not need to sign in to GitHub. Checking does not download, install or restart anything.
+
+When a newer version is available, review its release page and choose to download it. The app selects a package for the operating system, architecture and package type of the running app:
+
+| Running app | Download |
+| --- | --- |
+| Windows installer | Windows NSIS installer |
+| Windows portable | Windows portable executable |
+| macOS, originally installed from DMG or ZIP | macOS DMG |
+| Linux AppImage | Linux AppImage |
+| Linux DEB | Linux DEB |
+
+Architecture follows the running app: `x86_64` stays `x86_64`, and `arm64` stays `arm64`. An Intel build running through emulation therefore receives another Intel build. To switch architecture or package type, download the desired package from the release page. Development builds and unrecognized package types also use that page instead of choosing an installer.
+
+Downloads show progress and can be canceled or retried. Before offering the downloaded file, the app checks its exact size and SHA-256 against the release's `SHA256SUMS.txt`. It checks the file again before opening or showing it. Incomplete downloads and files that fail verification cannot be opened through the updater.
+
+For Windows installers, macOS DMGs and Linux DEBs, choose **Open installer** and confirm to open the package with your operating system. Follow the installer or package manager to finish. The current app stays open; finish pending submissions and save settings before closing it. The confirmation warns if there are unsaved changes.
+
+For Windows portable and Linux AppImage versions, show the downloaded file, quit the old app and replace it yourself. The downloaded AppImage is given executable permission. Keep the new file where you intend to run it, then open it from there.
+
+Verified downloads stay in the `updates` folder inside the data directory shown in **Settings → Local files**. After installation has finished and no installer is using them, you can delete downloads you no longer need. The app leaves them in place so it does not remove a file an installer may still be reading.
+
+Updates require your choices at each stage; the app does not install silently or restart itself. The release packages' signing restrictions still apply, including the macOS ad-hoc signature. See [Security and privacy](security.md#app-updates).
+
+Version 0.3.24 and earlier do not have this feature. Download and install 0.3.25 manually once; subsequent versions can be checked and downloaded from within the app.
 
 ## Editorials and reference code
 

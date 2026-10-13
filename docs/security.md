@@ -25,6 +25,7 @@ The desktop data root is `Daily CF` inside Electron's `appData` directory, with 
 | `session.enc` | Verified GitHub token, encrypted with Electron `safeStorage` when secure storage is available |
 | `data.json` | Plain-text settings, source repository binding and PR templates |
 | `library.git/` | Public upstream Git objects, repository identity and the active revision pointer |
+| `updates/` | App-update packages downloaded at your request |
 | `data-legacy-<digest>.json` | Original settings/data retained during migration |
 | `data-corrupt-<timestamp>.json` | Backup of an unreadable settings/data file |
 
@@ -88,19 +89,34 @@ Reference code and imported solutions are read-only text. Highlighting generates
 
 Clipboard writes happen when you request a copy. The dedicated interface checks input and limits it to 1 MiB of UTF-8 text. The app exposes no clipboard-reading or monitoring interface and does not read back the clipboard to verify a write. If copying fails, the text remains available for manual selection.
 
+## App updates
+
+**Settings → App updates** checks the latest published release of `yanami-anna-meow/daily-cf-client`. It does not use the configured problem upstream, submission fork or OAuth Client ID to choose an update source. Release checks and downloads use public GitHub endpoints without the submission account's token or browser cookies.
+
+Checking, downloading and opening an installer are separate user actions. The app does not silently install updates, replace its running executable or force a restart. Opening an installer requires confirmation and warns about unsaved settings or submission content. Portable and AppImage updates are downloaded for you to replace after quitting; the updater does not run those files.
+
+The package must match the running app's system, process architecture and recognized package type. The main process controls the release lookup and selected asset; the renderer cannot supply an arbitrary executable URL or file path. Development builds and unknown package types offer the release page instead.
+
+The downloaded package must match its declared byte length and the SHA-256 recorded in the release's `SHA256SUMS.txt`. The updater checks it again before opening it with the OS or showing it in the file manager. Partial, malformed or altered downloads are not treated as ready. Cancellation stops the download; retrying does not bypass verification.
+
+The checksum detects a damaged download or a file that differs from the published checksum. It is not an independent signature: someone able to replace both a release package and its checksum could change both. HTTPS certificate verification remains enabled. Windows packages are unsigned, and macOS packages use an ad-hoc signature without Developer ID or notarization. The updater does not bypass the operating system's security checks.
+
+Downloaded installers remain local files. Software with the same OS-account privileges can still modify local files or interfere with the OS after a check; these checks are not a boundary against an already compromised account. See the [user guide](user-guide.md#update-the-app) for the steps to finish an update.
+
 ## Network requests
 
 There is no app account server, usage analytics or crash telemetry. The app uses:
 
 | Service | Purpose |
 | --- | --- |
-| `github.com` | Public Git downloads and device authorization |
-| `api.github.com` | Account information, forks, PR queries and submissions |
+| `github.com` | Public Git downloads, device authorization and release downloads |
+| `api.github.com` | Account information, forks, PR queries, submissions and public release checks |
+| GitHub release asset hosts | Installer and checksum downloads |
 | `raw.githubusercontent.com` | Public files in the browser preview |
 | `avatars.githubusercontent.com` | Profile images |
 | Your default browser | Links you choose to open, including Codeforces problems |
 
-Account and submission API requests carry the access token only to GitHub. Public Git downloads and raw-file reads do not. Authentication and repository requests reject redirects. Errors returned to the renderer are sanitized rather than exposing raw authentication responses.
+Account and submission API requests carry the access token only to GitHub. Public Git downloads, raw-file reads and app-update requests do not. Authentication and repository requests reject redirects; release downloads accept only the GitHub download redirects allowed by the updater. Errors returned to the renderer are sanitized rather than exposing raw authentication responses.
 
 ## Fork and submission boundaries
 
