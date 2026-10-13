@@ -68,6 +68,13 @@ export interface BootState { auth: AuthState; settings: Settings; readonly defau
 export interface ApiResult<T> { ok: boolean; data?: T; error?: string; code?: 'submission_base_changed' | 'github_rate_limited' | 'library_content_missing'; rateLimit?: import('./rate-limit').RateLimitInfo; }
 export interface ClientAPI {
   bootstrap(): Promise<BootState>;
+  getAppUpdateState(): Promise<import('./app-update').AppUpdateState>;
+  checkAppUpdate(): Promise<import('./app-update').AppUpdateState>;
+  downloadAppUpdate(): Promise<import('./app-update').AppUpdateState>;
+  cancelAppUpdate(): Promise<void>;
+  openAppUpdate(): Promise<void>;
+  revealAppUpdate(): Promise<void>;
+  onAppUpdate(callback: (state: import('./app-update').AppUpdateState) => void): () => void;
   syncLibrary(): Promise<{ branch: string; revision: string }>;
   getLocalLibraryView(request: LocalLibraryViewRequest): Promise<LocalLibraryView | null>;
   onLibrarySync(callback: (progress: LibrarySyncProgress) => void): () => void;

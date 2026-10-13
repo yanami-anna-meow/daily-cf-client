@@ -1,4 +1,7 @@
 import { en as app } from './locales/app';
+import { en as appUpdateBackend } from './locales/app-update-backend';
+import { en as appUpdateNative } from './locales/app-update-native';
+import { en as appUpdateUi } from './locales/app-update-ui';
 import { en as backend } from './locales/backend';
 import { en as components } from './locales/components';
 import { en as composer } from './locales/composer';
@@ -17,7 +20,7 @@ export type TranslationParams = Readonly<Record<string, string | number>>;
 
 const english: Readonly<Record<string, string>> = Object.freeze(Object.assign(
   Object.create(null) as Record<string, string>,
-  app, backend, components, composer, gitLibrary, gitRepository, gitSyncUi, native, rateLimit, retainedContent, libraryRetained, shared,
+  app, appUpdateBackend, appUpdateNative, appUpdateUi, backend, components, composer, gitLibrary, gitRepository, gitSyncUi, native, rateLimit, retainedContent, libraryRetained, shared,
 ));
 
 // Production bootstraps explicitly apply the saved preference and system language.
