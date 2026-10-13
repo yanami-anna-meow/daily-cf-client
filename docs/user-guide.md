@@ -1,286 +1,171 @@
-# 题库浏览与投稿设置
+# User guide
 
-本指南介绍题库浏览、学习材料、提交列表与个人设置。Codeforces 题目在系统默认浏览器中打开；提示、题解和参考代码在客户端内阅读。安装及源码运行方法见 [README](../README.md#安装与使用)。
+English | [简体中文](zh-CN/user-guide.md)
 
-## 界面语言
+Daily CF browses [Yawn-Sean's daily problems](https://github.com/Yawn-Sean/Daily_CF_Problems) and helps you submit solutions through GitHub. Read hints, editorials and reference code in the app; open the original problem in your browser. See the [README](../README.md) for downloads and build instructions.
 
-设置中可以选择跟随系统、简体中文或 English。跟随系统时，系统首选语言以 `zh` 开头则使用简体中文，`en` 开头及其他系统语言使用英文；手动选择会作为本地偏好保存。语言在保存成功后生效，放弃修改或保存失败时继续使用原来的语言。应用界面、日期格式、状态、错误提示及原生菜单使用选定语言，上游仓库资料、参考代码和用户自定义 PR 模板保留原文。
+## Browse the library
 
-## 外观与配色方案
+**Latest problems** shows the newest problem set found in the repository. It does not assume that the newest set is dated today. The archive includes every valid date found in the repository, including future dates, and supports any number of problems per day.
 
-“设置 → 外观”初始提供绿色、粉色、蓝色和黑白四个配色方案，首次使用默认选中绿色。选择方案后可以修改名称；点击“添加方案”会复制当前方案的浅色和深色配色，并选中新副本供继续编辑。所有方案都使用相同的编辑和删除操作。点击“删除方案”后需确认，列表至少保留一个方案，最多可有 100 个方案。升级不会切换已保存的方案，也不会覆盖已保存的颜色；如果希望已有粉色方案使用本版浅色强调色，可把该项改为 `#fb7299`。
+**Problem archive** is one list grouped by month and day, newest first. Search by problem ID, title, hint or date. Difficulty and problem-type filters apply to the whole archive. The month sidebar scrolls to that month's first matching result; it does not narrow the search. Date navigation keeps the full list and current filters. Returning from a problem restores your previous position.
 
-每个方案分别保存浅色和深色两组颜色，每组可设置按钮底色、强调色、页面背景、卡片背景和正文文字五项，两组合计十项。可以使用选色器，也可以输入 `#RGB` 或 `#RRGGBB` 格式的颜色；预览会随编辑更新，其余界面颜色自动搭配。明确设置的强调色用于链接和操作文字，按所填颜色显示，不会自动压暗；按钮底色独立设置。正文与页面背景或卡片背景的对比度低于 4.5:1 时，编辑区会提示调整，建议先检查文字是否清晰可读。
+Difficulty bounds are inclusive. Leave either end blank for an open range, or both blank to include every difficulty. Problems without a rating remain visible only when neither bound is set. Invalid ranges are reported rather than silently changed.
 
-配色方案与明暗模式分别选择：浅色和深色使用方案中对应的一组颜色，“跟随系统”随系统明暗模式切换。添加、命名、改色、删除、选择方案和明暗模式均在保存设置后生效；放弃修改则保留之前已保存的外观。
+Ratings retain the repository's notation: `1700` stays `1700`, and `*1700` keeps its star. Colors follow Codeforces rating bands. Gym and CF Round are determined from the original problem link, independently of the star.
 
-“恢复默认方案集”会先要求确认，再把表单中的方案恢复为绿色、粉色、蓝色和黑白，并选中绿色。已改动的初始方案恢复原名和原色，后来添加的方案从列表中移除。恢复只修改当前表单，仍需点击“保存设置”才会写入配置；取消确认或离开时选择“放弃修改”，可以保留之前已保存的方案。明暗模式、界面语言和其他设置，包括它们尚未保存的编辑，都不会因为恢复配色而改变。
+The original problem button opens the exact repository link in your default browser, including its query string and fragment. Codeforces login and verification happen there. The app does not fetch or embed problem statements. If a title and link disagree, a source warning lets you check them.
 
-## 配置文件与数据目录
+## Updates and offline reading
 
-桌面客户端的“设置 → 本地文件”显示当前配置文件与数据目录的实际绝对路径。“打开配置文件位置”在系统文件管理器中定位 `data.json`；首次运行尚未生成配置文件时，会打开它所在的数据目录。“打开数据目录”打开当前题库目标的资料目录，其中包含个人设置、加密登录状态和本地题库数据。路径来自当前运行环境，不按某个操作系统写死。
+The desktop app keeps a local copy of the public problem repository. It checks for updates at startup, when you change pages, and when you click **Refresh**. The first download takes longer; later Git updates transfer only the data needed for the new version. You do not need Git installed.
 
-打开这些位置不会保存、丢弃或覆盖设置页尚未保存的修改，也不会为了打开位置而生成配置文件。如需手动修改配置，先退出客户端再编辑，完成后重新启动读取。浏览器开发预览没有本地文件位置，此处说明需要使用桌面客户端。
+Previous content remains visible during an update. A complete new archive replaces the old archive as a whole. If the repository has not changed, the app can reuse the current complete result after checking the remote version. The first load shows progress and lets you search the portion already read.
 
-## 难度、来源与题目类型
+A failed update keeps readable previous content and shows the failure. A successful update removes files that no longer exist upstream from the current view. It does not delete your local solution files or items already in the submission list.
 
-难度数值与题目类型分别处理，题卡使用仓库原本的简洁写法：
+Synchronization checks local Git data for damage. When possible, the app downloads and verifies a replacement before using it. Repair needs a working network connection and enough disk space. Unsafe paths or an unexpected repository identity stop synchronization instead of taking over the directory. See [Security and privacy](security.md#local-library-and-integrity-checks).
 
-- **难度数值**：例如 1700、2100，供选题时比较。
-- **星号写法**：仓库写作 `*1700` 时保留星号，不带星号时显示 `1700`；没有可读数值时显示未标注。题卡不附加“官方／估算”说明。数据层仍保留来源，用于正确生成 PR 模板，不会因为题目属于 Gym 就自动断定难度来源。
-- **题目类型**：根据原题链接区分 Gym 与 CF Round，独立于难度。可以同时选择题目类型和难度范围，不设单独的来源筛选。
+Settings and encrypted login sessions are separate from the library. PRs and account information still use the GitHub API and its rate limits. An up-to-date library does not mean that PR data has refreshed successfully.
 
-历史题库的最低／最高难度可以自由输入非负整数，区间包含两端。例如最低 `1700`、最高 `2100` 会同时保留难度恰为 1700 和 2100 的题目；只填一边就是单边限制，两边留空表示不限，也会保留未标注难度的题目。任意一边有限制时，不包含难度未知的题目。没有固定的 Codeforces 难度上限，输入值须是可精确表示的安全整数。下界大于上界或输入格式错误时明确提示，不会偷偷交换上下界；刷新与月份、日期定位保留当前筛选。
+The browser development preview does not keep a local Git repository. It uses GitHub's API and public file endpoints, so library browsing in that preview also uses API requests.
 
-题库中的题目名称、提示与题解取自上游仓库。题解支持 Markdown、数学公式、代码块与复制；参考代码可以按语言筛选。点击题目原文入口后，客户端将仓库中的原始 Codeforces 链接交给系统默认浏览器，保留原协议、域名、路径、查询参数和片段，不自行改写为另一种题目链接。题面、网站登录和验证都在该浏览器中处理，客户端不抓取或内嵌题面，也不打开内置辅助浏览器。
+## Editorials and reference code
 
-客户端不内置 Codeforces 题面读取或网站验证流程。
+Editorials support Markdown, formulas and code blocks. Reference solutions include all matching authors, with a language filter and a file selector. Code uses the bundled JetBrains Mono font and can be copied without formatting.
 
-难度徽标采用 Codeforces 的灰、绿、青、蓝、紫、橙、红配色区间；深色模式调整亮度以保持可读性。颜色只表示数值区间，星号与 Gym／CF Round 标签继续保留。浅色值核对自 [Codeforces 官方样式](https://codeforces.com/css/community.css)，分段参考[官方等级更新](https://codeforces.com/blog/entry/59228)；题目难度不套用用户昵称的黑色首字母样式。上游题名和原题 URL 不一致时，会显示资料来源警告，并保留可核对的原文与链接。
+Recognized formats include C, C++, Python, Java, Rust, Go, C#, JavaScript, TypeScript, Kotlin, Ruby, Swift, Scala, PHP, Pascal, D, Haskell, OCaml, F#, Perl and R. Unknown extensions remain readable as plain text. In particular, `.c` is C, `.C` is C++, and `.h` is shown as C / C++.
 
-## 查看全部作者的参考代码
+Highlighting falls back to plain text for large or unsupported input; it does not change or truncate the source. Reference files may be up to 1 MiB. Highlighting is not compilation or a correctness check.
 
-“参考解答”展示匹配当前题目的所有可读取文件，而不是只挑一位作者。可按语言筛选，点击不同署名文件切换，并使用复制按钮取得原始代码。文件名过长时省略显示，悬停可查看完整名称。
+## Sign in and choose a fork
 
-参考解答、题解中的代码块和上传文件的只读预览统一使用本地内置的 JetBrains Mono 字体，不依赖在线字体服务。已知扩展名使用对应语法高亮；其他文本文件也可以阅读，使用纯文本显示。常见的识别规则如下：
+Click **Sign in with GitHub**, enter the displayed code on GitHub, and approve the request. A personal access token is another option. The [GitHub setup guide](github-setup.md) explains permissions and the advanced OAuth setting.
 
-| 语言 | 已知扩展名示例 |
+Before creating a PR, choose a source repository in the submission dialog or **Settings → Fork repository**. The source receives your submission branch; the upstream receives the PR. Both are shown in preview.
+
+- Select an existing fork and confirm it, even if there is only one candidate.
+- Enter `owner/repository` to bind a renamed fork or one not shown in the list.
+- Choose **Create fork**, check the full name, then confirm creation. Save the selection or confirm **Use this fork** to bind it.
+
+The source must belong to your GitHub account and the configured upstream's fork network. The app does not silently choose, create or replace it. If you own the configured upstream, you can explicitly use it as the source; submissions still use separate branches and PRs.
+
+The create option remains available when candidates are listed, but GitHub may return an existing fork or reject a name. The app reports that outcome rather than treating it as a newly created and bound repository. Changing the fork does not change the upstream or move existing PRs.
+
+### Synchronization before submission
+
+Previewing only reads the fork state. Once you confirm submission, the default branch is handled as follows:
+
+| Fork state | Action |
 | --- | --- |
-| C | `.c` |
-| C++ | `.cpp`、`.cc`、`.cxx`、`.c++`、`.C`、`.hpp` |
-| C / C++ | `.h` |
-| Python | `.py`、`.py3` |
-| Java | `.java` |
-| Rust | `.rs` |
-| Go | `.go` |
-| C# | `.cs` |
-| JavaScript | `.js`、`.jsx`、`.mjs`、`.cjs` |
-| TypeScript | `.ts`、`.tsx`、`.mts`、`.cts`、`.d.ts`、`.d.mts`、`.d.cts` |
-| Kotlin | `.kt`、`.kts` |
-| Ruby | `.rb` |
-| Swift | `.swift` |
-| Scala | `.scala` |
-| PHP | `.php` |
-| Pascal | `.pas` |
-| D | `.d` |
-| Haskell | `.hs` |
-| OCaml | `.ml` |
-| F# | `.fs`、`.fsharp` |
-| Perl | `.pl` |
-| R | `.r` |
-| 纯文本 | `.txt` |
+| Same as upstream | No change |
+| Behind, with no independent commits | Fast-forward without force and verify the result |
+| Contains upstream plus your own commits | Preserve those commits; create the submission branch from the checked upstream version |
+| Diverged from upstream | Stop and ask you to resolve the divergence on GitHub |
 
-`.c` 按 C 识别，大小写不同的 `.C` 按 C++ 识别；`.h` 文件使用 C / C++ 标签，并按 C++ 语法着色。`.txt` 和无法识别的扩展名使用纯文本。题解代码块兼容常见语言别名，未知语言使用纯文本。超过 128 KiB 或无法安全高亮的内容也退回纯文本，不截断、不改变代码本身。上传源码文件上限为 256 KiB；从题库读取参考代码的上限为 1 MiB。
+The app never force-resets the default branch. Synchronization and PR creation are separate GitHub operations: one may succeed before a later step fails. Follow the error message and preview again before retrying. A deleted or renamed fork requires you to update its binding; the app does not replace it automatically.
 
-投稿表单提供 C++、C、Python、Java、Rust、Go、C#、JavaScript、Kotlin 和“其他”快捷选项。选择预设会填入对应扩展名，“其他”先填 `txt`；扩展名仍可自行修改，例如 `cc`、`cxx`、`d.ts` 或 `custom`。可带一个开头的点，大小写保留。导入文件会采用文件的实际扩展名，不把 C++ 的其他扩展名改成 `cpp`；没有扩展名时需要补填。
+## Submit solutions
 
-导入文件必须是 UTF-8 文本；不是有效 UTF-8 的文件会提示先转换编码，不会静默替换其中的字节。
+Write and test code in your own editor. The app imports files, previews them and creates a new PR from the submission list.
 
-扩展名决定最终文件名、队列冲突和远端覆盖检查，也决定 PR 模板中的 `{{extension}}`。它不能是路径或包含文件名禁用字符；完整文件名有跨平台长度限制，输入问题会在字段附近说明。
+1. On a card or detail page, choose **Add to submission list**.
+2. Select a UTF-8 source file and enter an author name for that file. Check the extension, generated filename and code preview. The author field starts blank and has no saved default.
+3. Add the file, then keep browsing or add more from the list. You can prepare the list before signing in.
+4. When ready, sign in, confirm your fork and choose **Preview PR**. Check repositories, paths, changes and PR text. Confirm each overwrite if needed.
+5. Choose **Submit PR**. Changed files go into one new PR, and the list clears after success.
 
-代码在你自己的编辑器里编写，客户端用于查看和提交。浅色／深色主题均可阅读高亮代码；高亮不代表编译、语法检查或 Codeforces 判题通过。
+The app does not modify existing PRs. Use GitHub to edit a PR that has already been created.
 
-## 历史列表、搜索与定位
+### Files and extensions
 
-历史题库在同一个列表中展示题目，按月份和日期分组，日期从新到旧排列。搜索题号、标题、提示或日期，以及难度范围、题目类型筛选，都作用于整个历史列表。无需选择检索模式，也不会因为定位到某个月份而缩小搜索范围。“清除筛选”同时清空搜索、难度范围和题目类型限制。
+Language presets fill in an extension, but you can edit it or enter your own. Importing keeps the actual extension and its case: `.cc` is not renamed to `.cpp`. Compound extensions such as `d.ts` are accepted. A file without an extension needs one before it can be added. Invalid filename characters and paths produce a field-specific error.
 
-月份目录用于“快速跳转”：点击月份后，列表滚动到该月第一组符合当前筛选的题目，其他月份仍在列表中。目录会随浏览位置标记当前月份；有筛选条件时显示该月的匹配数量，尚未读取、读取失败或没有匹配结果的月份也会标明状态。跳转不会另行请求某一个月份，也不会自动清除筛选。
+A list can contain 1–50 files, up to 256 KiB each and 5 MiB of normalized UTF-8 code in total. Files must be valid UTF-8 without NUL bytes. Each file's note and the shared PR note can contain up to 2,000 characters.
 
-“定位日期”默认留空。选定完整日期后会自动滚动到当天，按 Enter 或移开输入焦点可立即执行；页面仍保留整个历史列表，不弹出题目选择窗口。若目标月份还在加载，页面会显示等待提示，读到后再定位；题目被当前筛选隐藏、尚未加载或仓库中没有对应题目时，会分别说明原因。可以清除或调整筛选后重新定位；停止加载或读取失败时，可先重新加载题库再定位。等待期间主动滚动、改变筛选或离开页面会取消待执行的跳转。
+You can include a problem more than once if the generated paths differ, for example by author or extension. If a path is already in the list, the app compares the files and asks before replacing that item. This does not grant permission to overwrite an upstream file.
 
-从历史列表打开题目详情，再点击“返回历史题库”时，会恢复原卡片附近的位置并保留筛选。重新进入历史题库仍会在后台检查更新；已经读过的完整列表会先显示，当前运行中没有完整结果时，桌面版可先从本机已有题库读取。保留内容和浏览位置不会跳过更新检查。
+A file's original problem date determines its directory. It is never changed to today's date.
 
-每天显示的题目数量由实际题单决定，不固定为两道；最新列表、历史日期选择和添加到 PR 的候选题目都保留该日期的完整题目集合。一题、三题、四题或更多题目的日期使用同样的浏览与提交流程。
+### Existing files and overwrites
 
-月份列表来自上游 `daily_problems` 中的实际年份和月份；当前显示多少个月取决于仓库，不是写死的数量或起始年月。后台更新期间可能先显示上次读取的月份，并有明确提示；仓库补充更早或更晚的月份后，更新完成即会显示。成功读取确认某天没有题单时，会显示相应提示，不用旧题单替代。选中历史题目后加入提交列表，文件落在其原始日期目录。
+Adding a file checks whether its destination exists upstream. An existing file or a failed check produces a warning; you can still add the item. The final preview checks again.
 
-题目日期来自仓库目录，与电脑当前年份无关；不会因为日期晚于本机时钟而拒绝读取或改成今天。有效的远期日期，例如 `2128-02-29` 或 `9999-12-31`，仍按原日期生成题单与投稿路径，并从 PR 的实际变更文件识别日期；不存在的日期或无相应上游题单时仍显示错误。远期示例属于回归测试数据，不表示官方仓库已经存在这些年份的内容。
+If an existing file has different content, preview shows its path, old code and differences. Confirm each overwrite separately. Confirmation applies to the version you previewed; if that version changes before submission, the app asks for another preview. The change is proposed on a new branch, not written directly to upstream's default branch.
 
-进入历史题库后自动检查更新并读取所有月份，不需要另外启动全库加载。联网同步确认仓库版本和目录信息未变后，可以沿用已有完整结果，不再重复读取所有月份；这延续了 0.3.5 引入的同版本结果复用。若版本或目录信息变化，或尚未取得完整结果，则从同一个仓库版本读取全部题单。更新时继续显示和检索原来的内容，**新版本的全部月份成功读取后才整体替换**，不会把新旧版本的月份混在一起。更新失败或停止时保留原结果，并标明更新未完成。
+Files identical to upstream are marked unchanged and omitted from the final PR's changed-file list. If every file is unchanged, no empty PR is created. Submitted text is normalized by removing a UTF-8 BOM, using LF line endings and ensuring a final newline. Your original file is not changed.
 
-首次读取且没有完整旧结果时，界面显示已处理月份、正在读取的月份和加载进度，可以搜索本轮已读到的部分；只有全部月份成功读取后，结果才覆盖当前发现的全库。首次下载尚未完成、本地也没有可读题库时，先显示加载进度，不显示虚构的旧结果。0.3.6 在完整全库读取成功后收起检索区的进度面板；未完成时仍保留初始、加载或失败提示，页面顶部的题库更新状态独立显示。
+### What the list remembers
 
-桌面版从本机题库读取各月题单，不再为每个月、每一天逐个发出 GitHub API 请求。首次同步需要下载上游当前版本的文件，可能比之后的更新耗时更长。网络中断或同步失败时，已有内容仍可阅读，页面会说明“题库更新未完成，当前显示上次读取的内容。”，并提供重试入口；没有已有内容的页面则显示加载失败。断网时能看到哪些内容取决于本机已经保存的上游题库，不能据此确认它仍是最新版本。
+Files, author names and notes stay in memory while the app runs. Closing the list dialog or changing pages keeps them; quitting, refreshing the whole app or a crash loses them. Normal close and refresh actions warn about unsubmitted content. There is no saved draft after exit.
 
-## 自动同步与手动刷新
+You can retry a failed request. The app checks whether the same submission already created a branch or PR before continuing. It does not turn a changed request into an edit of an existing PR. Success means the PR exists; it does not mean Codeforces accepted the solution or the maintainer merged it.
 
-桌面版会在本机保留一份上游题库。启动和每次切换页面都会自动检查更新，包括提交记录和设置页；也可以使用刷新入口立即同步。已有内容先显示，更新在后台进行，不必每次等下载完成才能阅读。首次下载后，常规更新通过 Git 只传输所需的变更数据，无需你安装 Git、运行命令或维护仓库。
+## PR status and history
 
-本地题库用于读取题单、提示、题解和所有作者的参考代码，与你的投稿 Fork、提交列表和本地源文件分开。题目详情、题解和已选参考代码在重新读取时也保留可读内容，并显示检查更新的提示。只有更新成功才移除该提示；失败时保留原文、错误和重试按钮，不把已有内容当成更新成功。
+History reads PRs authored by the signed-in account and addressed to the configured upstream, including PRs made through GitHub or other tools. A PR containing several problems still counts as one PR.
 
-网络错误与内容删除分别处理。成功读取新版本，确认题目或参考文件已不存在时，会清除对应旧内容并显示缺失状态；题解或参考文件列表成功返回为空时，也会更新为空。切换到另一题或另一文件不会暂时显示前一个对象的正文。已经加入提交列表的个人文件独立保留，实际创建 PR 前仍会重新核验上游题目、目标文件和覆盖确认。
+Problem associations come from changed file paths, not titles, descriptions or names in filenames. Related PRs appear in one list, newest creation time first, across all problem dates. Open, merged and closed PRs are all shown.
 
-| 入口 | 重新读取的内容 |
+| Card background | Meaning |
 | --- | --- |
-| 页面顶部题库状态旁的“刷新” | 后台同步并更新当前页的题库内容，已有内容继续显示；提交记录页同时刷新 PR，设置页保留正在填写的设置 |
-| 最新题目标题旁“刷新” | 重新定位仓库最新发布的题单，不按本机当天日期限定，同时刷新当前账号的 PR |
-| 历史题库“刷新” | 后台同步并核对全部月份，保留原结果、搜索与筛选；确认同版本后可复用完整结果，有变化时读完新结果再整体替换，同时刷新当前账号的 PR |
-| 提交记录“刷新” | 重新查询当前账号在目标题库的 PR，后续页面继续在后台读取 |
-| 题解／参考代码加载失败后的“重新加载” | 重新检查相应资料或当前代码文件；已有文本继续显示，成功后替换 |
+| Pale purple | At least one related PR has been merged |
+| Pale green | No merged PR, but at least one is open |
+| Neutral | Only closed PRs, or no confirmed association |
 
-本地保存的是上游题库的 Git 数据，以及用户设置和可加密保存的登录状态。页面还会在本次运行的内存中保留读过的题库结果，便于切换页面时先显示；0.3.5 对同内容解析结果的复用也仅在内存中，没有新增题单 JSON、草稿或提交台账文件。它不会因“刚刚刷新过”而跳过远端检查，每次进入页面和手动刷新仍会同步上游。你上传的代码、现场署名和补充说明仍仅保留在本次运行中，不保存为草稿。GitHub 账号、Fork 和 PR 数据继续通过 GitHub API 读取，不存入本地题库；读取失败会显示错误，登录过期时提示重新登录。Codeforces 题目由系统默认浏览器打开，客户端不抓取题面。
+The list and counts explain the color. Loading, failed or incomplete queries have separate notices; a missing result is not proof that a problem has never been submitted. Related PRs are reminders and do not prevent another submission.
 
-0.3.6 将本机题库保存在独立命名的对象库中，并记录当前可用版本。升级时会读取旧 `objects.git/`，核验后复制到新对象库继续同步，旧库保留原样；正常更新仍使用当前对象库增量下载。同步发现本地对象损坏时，会提示“正在修复本地题库…”，尝试从公开上游重新下载，核验成功后才切换到修复后的版本，不需要你运行 Git 命令。修复需要网络；网络、权限或磁盘空间问题仍会明确报错，不能把旧页面当成修复成功。已读到内存的内容可以继续显示，但损坏的本地库不保证能继续读取。
+GitHub search returns at most 1,000 PRs, and a PR's files endpoint returns at most 3,000 changed files. The app shows what it can read and warns when results may be incomplete. Deleted files and unrelated changes remain visible in PR details but do not count as submitted solutions. PR data is not saved as a local contribution ledger.
 
-升级与修复不自动删除旧对象库或未知文件，因此可能增加磁盘占用；不会清理你的原始解答、设置或登录状态。若提示题库目录不安全或仓库身份不符，程序停止同步，不会自行接管该目录；请按错误信息检查目录，不要把自己的 Git 仓库放进应用管理的题库位置。详细保存范围见[安全与隐私说明](./security.md#上游题库同步)。
+## PR templates
 
-GitHub API 仍可能限制账号、Fork、投稿和 PR 查询的请求频率。遇到限流时，界面会提示等待或重试；题库采用 Git 同步并不取消这些接口的额度限制。题库显示的上次内容不代表账号数据已经刷新，也不能代替投稿前的联网校验。
+**Settings → Pull request templates** contains one title and one Markdown body template for both single- and multiple-problem submissions. Put the cursor in a field and select a variable to insert it. Settings use sample data for preview; submission preview uses actual files.
 
-浏览器开发预览不建立本地 Git 仓库，也不能从磁盘恢复上次运行的题库。当前运行中读过的结果可以在后台更新时继续显示，新数据仍通过 GitHub API 与公开文件接口读取，因此仍可能受到目录和题单请求额度限制。
-
-停止或离开加载页面后，不再安排该轮后续月份读取，迟到响应不能覆盖新页面；已经发出的同步或网络请求可能仍会完成。账号 PR 读取独立进行。启动或手动刷新“最新题目”都重新定位仓库最新发布的题单，题单日期可以与本机日期不同，不依赖午夜计时或本机当前年份。
-
-同步题库不会改写设置表单或提交列表。未保存设置时离开页面或进行原生窗口刷新，仍由保存／放弃／继续编辑提示保护。
-
-## GitHub 登录配置
-
-通常只需点击“登录 GitHub”，按浏览器中的提示完成授权。设置页的“高级设置 · GitHub OAuth”供开发者或自行构建客户端时使用；“谨慎修改”靠左紧邻折叠标题，展开后会持续显示影响说明。**Client ID 是 OAuth 应用的公开标识，不是个人访问令牌，也不是 Client Secret。**
-
-修改 Client ID 后点击“保存设置”，或选择“保存并离开”，会显示“确认更改 GitHub 登录配置？”，列出当前值与新值。普通保存时点击“确认更改并保存”，保存并离开时点击“确认更改并保存离开”，才继续原操作；“取消”或关闭确认框会保留表单内容，本次设置不会保存。只有 Client ID 与已保存值不同时才出现这项确认，修改其他设置或把 ID 改回原值不会触发。
-
-**恢复默认**：Client ID 输入框下的“恢复默认”会填入当前安装包内置的 ID。它只修改表单中的这一项，保留同时编辑的 Fork、模板、语言和外观等其他设置，不立即保存或发起登录。恢复后的值若与已保存值不同，仍需点击“保存设置”并确认更改才生效。内置默认值独立于用户设置，保存自定义 ID 不会将它改成新的默认值。
-
-当输入框已经是内置默认 ID 时，按钮不可点击；如果只是把尚未保存的改动恢复为原来已保存的默认 ID，就没有这项需要保存的变化。按钮旁不再显示已填写默认值或恢复后需保存的常态小字；仅当安装包未内置默认 ID 时，保留不可恢复的原因，并说明可手动填写或使用个人访问令牌登录，此时按钮同样不可点击。
-
-| 改动 | 实际影响 |
+| Variable | Value |
 | --- | --- |
-| 填错 Client ID | 格式不合法时无法保存；格式合法但不是可用的应用 ID 时，下次浏览器授权登录会失败。保存成功不代表已验证该 ID 能登录。 |
-| 清空 Client ID | 保存后，本次运行无法通过浏览器授权登录，仍可使用个人访问令牌。若安装包内置了发布者的默认 ID，下次启动会补回该默认值；未内置时仍需重新配置。 |
-| 换成另一个有效应用的 ID | 后续设备授权会改用对应的 OAuth App，该应用须启用 Device Flow。应核对 GitHub 授权页的应用名称和权限，只授权自己信任的应用。 |
+| `{{date}}` | Earliest date, such as `2026-10-07` |
+| `{{date_compact}}` | The same date as `20261007` |
+| `{{date_range}}` | Earliest to latest date, or one date if equal |
+| `{{problem_id}}` | Repository problem ID, such as `cf1234a` |
+| `{{problem_label}}` | Problem name from upstream |
+| `{{problem_url}}` | Original problem link |
+| `{{rating}}` | Rating with its star, or an unrated label |
+| `{{rating_source}}` | Yawn-Sean estimate, Codeforces rating or unknown |
+| `{{problem_type}}` | Gym, CF Round or unknown |
+| `{{language}}` | Language name |
+| `{{extension}}` | Actual extension, without a leading dot, preserving case |
+| `{{author}}` | Author name entered for each file |
+| `{{filename}}` | Generated filename |
+| `{{path}}` | Full repository path |
+| `{{notes}}` | Shared PR note |
+| `{{login}}` | Signed-in GitHub username |
+| `{{problem_count}}` | Number of distinct date/problem pairs |
+| `{{file_count}}` | Number of changed files |
+| `{{problem_list}}` | Markdown table of problems, files and per-file notes |
+| `{{file_list}}` | Markdown list of repository paths |
 
-修改或清空 ID 不会自动退出已有账号，也不会撤销 GitHub 上已有的授权；原登录凭据仍有效时可以继续使用，因此配置问题可能到下次登录才出现。正在等待完成的设备授权会因 ID 改动而取消，需要重新开始。填错后可以回到设置恢复原值并保存；登录方式与发布者配置详见 [GitHub 登录说明](./github-setup.md)。
+For multiple files, individual fields are deduplicated and joined in input order. Use `{{problem_list}}` to retain the relationship between a problem, its rating and its files. When there are changes, the final template includes only changed items.
 
-## 绑定 Fork 仓库
+The expanded title must be one line, begin with the earliest date as `YYYYMMDD` and a space, and contain at most 256 characters. The body limit is 60,000 characters. Unknown variables, incomplete braces and reserved `daily-cf-` markers are rejected. Variables substitute text only; they do not run code.
 
-先登录 GitHub，在首次投稿的 Fork 选择步骤或“设置 → Fork 仓库”中，明确选择本次使用的个人仓库。该区域会显示最终接收 PR 的题库仓库；“提交来源仓库”中的个人 Fork 保存你自己的代码分支，两者含义不同。
+## Settings
 
-| 选择 | 行为 |
-| --- | --- |
-| 列表中的仓库 | 只读查询已有候选，由你选择并确认使用；只有一个候选也不会自动选定 |
-| 手动指定 `owner/repository` | 适合重命名后的 Fork；点击“验证并选择”确认归属与 Fork 来源 |
-| 主动创建 Fork | 先填写仓库名并核对 `账号/仓库名`，确认创建后才向 GitHub 请求；成功后选为未保存候选，仍需保存或确认使用 |
+Settings are saved explicitly. Leaving with unsaved changes offers **Save and leave**, **Discard changes** or **Keep editing**. A failed save leaves the form intact. Saving settings does not save the submission list.
 
-首次引导中需要明确确认“使用这个 Fork”；在设置页调整时需要保存设置才生效。未绑定时可以准备提交列表，但不能预览或提交 PR，客户端不会自行选择或创建仓库。手动输入必须属于当前 GitHub 账号，且与题库上游有关联；其他人的仓库、组织仓库或与题库无关的同名仓库会被拒绝。账号仓库过多时，候选查询会提示手动绑定，避免无限扫描。
+### Language
 
-点击创建会先展开仓库名称输入框，展示当前账号下的完整目标地址；确认名称后才发送创建请求。可以换一个名称避开账号下无关仓库的重名，但同一账号已经拥有该项目的 Fork 时，改名并不能再创建第二份。GitHub 官方说明已有 Fork 时应使用并更新原来的 Fork，客户端也不能绕过这一平台限制。[GitHub 关于已有 Fork 的说明](https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project#creating-your-own-copy-of-a-project)
+Choose system language, Simplified Chinese or English. System language uses Chinese for a preferred language starting with `zh`, and English otherwise. Interface text, dates, errors and native menus use your choice. Repository content, code and custom PR templates keep their original text.
 
-客户端不会仅因列表已有候选就笼统禁止点击创建。实际请求后，如果 GitHub 返回已有 Fork 或与所填名称不同的仓库，会明确提示没有按该名称创建成功，不将其当成新仓库自动绑定。点击“创建并选择”成功后，新仓库会成为未保存的候选；仍需点击“保存设置”或“使用这个 Fork”才生效，原来已保存的绑定在此之前保持不变。GitHub 的创建 Fork 接口支持指定仓库名称，名称与已有 Fork 的限制是两件事。[GitHub 创建 Fork API](https://docs.github.com/en/rest/repos/forks#create-a-fork)
+### Appearance
 
-如果配置的测试上游本来就由当前账号拥有，可以显式选择该仓库作为来源，再在其中创建投稿分支；这个场景也必须确认绑定。修改“Fork 仓库”本身不会把正式 PR 的目标切换成测试仓库，更改测试上游仍需按 README 的构建环境配置重新构建。
+The initial palettes are green, pink, blue and monochrome; green is selected by default. Each has a name and light/dark variants. Add a palette to copy the selected one, then rename and edit it. Built-in and added palettes use the same controls.
 
-每次提交预览都会显示已确认的来源 Fork 和目标题库仓库。绑定失效、仓库不可写或来源不符时会显示错误，要求重新选择，不会回退到其他仓库。
+Each variant has five colors: button, accent, page background, card background and body text. Use the picker or enter `#RGB` or `#RRGGBB`. Accent colors apply to links and actions independently of the button color. The editor warns about low text contrast. Light, dark and system appearance can be selected independently of the palette.
 
-### Fork 与上游同步
+**Restore default palettes** asks for confirmation, replaces the list with the original four and selects green. It affects only the form until saved; discarding the form keeps your previous palettes. Language, light/dark mode and other settings are not reset.
 
-预览会读取并显示 Fork 的同步状态，预览本身不修改分支。确认提交且完成所需的覆盖确认后，客户端按以下规则处理来源仓库的默认分支：
+### Local files
 
-| 状态 | 提交时的处理 |
-| --- | --- |
-| 与上游一致 | 保持现状 |
-| 仅落后于上游 | 使用非强制更新快进到最新上游，并重新核验结果 |
-| 已包含最新上游，另有自己的提交 | 保留自己的提交；新建 PR 仍从最新上游建立独立投稿分支 |
-| 与上游历史发生分叉 | 停止并提示先处理分叉，不强推或重置默认分支 |
+**Settings → Local files** shows the actual config and data paths. Open the config location to find `data.json`, or open the directory containing settings, the encrypted session and the local library. If no config exists yet, its parent directory opens instead. Opening these locations does not save or discard form changes.
 
-同步默认分支与创建代码提交是多个 GitHub 操作，整体不是一个事务。默认分支快进可能已经成功，而后续代码提交因网络等原因失败；此时请根据错误重新预览、核对状态后重试。
-
-删除个人 Fork 不会从 GitHub 删除历史 PR，提交记录仍可读取。失效的绑定需要由你重新选择，客户端不会因此自动重建或切换 Fork。
-
-## 自定义 PR 标题与描述
-
-“设置 → Pull Request 模板”提供一套标题和 Markdown 描述模板，提交一题或多题时都使用它。先将光标放入相应输入框，再点击变量按钮即可插入；恢复默认后仍需保存设置。实时预览使用明确标注的示例，实际新建 PR 前会重新读取真实题目、账号和署名。最终 PR 明细仅包含实际有变化的文件，原文与上游相同的列表项不会被写成新增贡献。
-
-以下 20 个变量都适用于任意题目数量。多项提交时，题号、名称、链接、难度、类型、语言、扩展名、署名、文件名和路径按输入顺序去重，并用“、”连接；日期取最早值。需要保留每道题与文件、难度的对应关系时，使用 `{{problem_list}}` 明细表。
-
-| 变量 | 内容 |
-| --- | --- |
-| `{{date}}` | 题目日期，如 `2026-10-07`；多题取最早日期 |
-| `{{date_compact}}` | 紧凑日期，如 `20261007`；多题取最早日期 |
-| `{{problem_id}}` | 仓库题号，如 `cf1234a` |
-| `{{problem_label}}` | 上游显示的题目名称 |
-| `{{problem_url}}` | 原题链接 |
-| `{{rating}}` | 保留原始星号的难度，如 `*1700`／`1700`，无数值时为“未评级” |
-| `{{rating_source}}` | 小羊估算／CF 官方／未知 |
-| `{{problem_type}}` | Gym／CF Round／未知 |
-| `{{language}}` | 语言名称，如 `C++` |
-| `{{extension}}` | 实际文件扩展名，不含开头的点并保留大小写，如 `cc`、`C`、`custom` |
-| `{{author}}` | 署名；多题将不重复的署名连接 |
-| `{{filename}}` | 提交文件名 |
-| `{{path}}` | 仓库中的完整文件路径 |
-| `{{notes}}` | 本次 PR 的共享补充说明 |
-| `{{login}}` | 当前 GitHub 登录用户名 |
-| `{{problem_count}}` | 按日期和题号去重后的题目数量 |
-| `{{file_count}}` | 代码文件数量 |
-| `{{problem_list}}` | 日期、题目链接、难度、类型、语言、文件和各项说明的 Markdown 明细表 |
-| `{{file_list}}` | 所有仓库文件路径的 Markdown 列表 |
-| `{{date_range}}` | 最早至最晚日期；同一天时只显示一个日期 |
-
-默认标题：
-
-```text
-{{date_compact}} 解题提交（{{problem_count}} 题）
-```
-
-默认正文通过 `{{problem_list}}` 展示所有文件，同时显示日期范围、题目数和文件数。单题与多题使用相同格式。
-
-为符合仓库投稿习惯，**展开后的标题必须以题目日期和一个空格开头**，多题取本次最早日期。标题应是单行，最多 256 个字符。未知变量、不完整的双花括号或不合要求的内容会直接报错。描述最多展开为 60000 个字符；空模板使用默认值。
-
-变量只做文本替换，不会运行 JavaScript 或其他代码。客户端会在最终 PR 描述中加入用于识别投稿与重试的内部注释，用户模板不要使用 `daily-cf-client` 或 `daily-cf-payload` 保留标记。
-
-## 保存设置与离开提醒
-
-修改默认编程语言、Fork、模板或其他设置后，需要保存才会持久生效。设置中没有默认署名。存在未保存修改时，切换页面或关闭窗口会显示“设置尚未保存”：
-
-- **保存并离开**：先保存，成功后完成原来的跳转或关闭操作；保存失败则保留修改和当前页面。
-- **放弃修改**：恢复上次已保存的设置，并完成原来的离开操作。
-- **继续编辑**：留在设置页，保留尚未保存的内容。
-
-该提醒针对设置表单。提交列表另有退出保护：关闭列表弹窗保留内容，实际退出或刷新程序时提示继续编辑或丢弃；列表不会保存为本地草稿。
-
-## 提交列表与新建 PR
-
-题卡和详情统一提供“加入提交列表”。先为这道题选择源码文件、填写署名并确认，再把完整文件加入列表；页面顶端的“提交列表”显示当前文件数量。列表只保留在本次程序运行的内存中，关闭弹窗或切换页面后仍可继续使用，不需要一次准备完所有题目。未登录时也可以准备列表，创建 PR 前再登录并确认 Fork。
-
-列表中的添加题目区域自动读取候选题目。首次从空列表进入时读取最新题单；切换日期后自动读取该日题目，无需另点加载。键盘输入日期时短暂等待输入稳定再请求，切换后立即清除旧候选；空结果、加载中和错误分别显示，可重新读取或重试。
-
-在自己的编辑器中完成并保存代码后：
-
-1. 从题卡、详情或列表候选题目打开编辑框，选择源码文件并填写署名。署名初始为空，不使用 GitHub 登录名默认填充，也不写入偏好设置。
-2. 核对实际扩展名、实时文件名与只读代码预览，点击“加入列表”。需要改变扩展名时可直接填写，也可选语言预设快捷填写。程序只读检查上游是否已有同路径文件；已有文件或检查失败时会明确提示，允许你确认后先加入列表，预览 PR 时会再次校验。
-3. 继续浏览其他题目，或打开顶栏“提交列表”。每项均可编辑、重新选择源码、查看代码或移除；关闭列表不会清空已经加入的文件。
-4. 准备提交时登录 GitHub，明确确认 Fork，填写共享说明并点击“预览 PR”。检查全部路径、变更、题目日期、来源仓库、目标上游与 PR 正文；需要覆盖已有内容的文件逐项勾选确认。
-5. 点击“提交 PR”。本次实际有变化的文件一起创建一个新 PR，成功后列表清空。已有 PR 保持只读，本版不提供追加或修改既有 PR 的操作。
-
-一次至少需要 1 份解答，最多 50 份；每份最多 256 KiB，规范化后的 UTF-8 代码合计最多 5 MiB。同一道题可加入多份解答，冲突按完整目标路径判断。同题同署名的 `.cpp`、`.cc`、`.c` 或其他不同扩展名可以同时保留；若与列表某项路径相同，会展示差异并要求明确确认替换，不会静默丢弃旧文件。
-
-每份文件的署名与代码、列表共享说明一同保留在会话内存中，关闭列表弹窗不要求重新填写；退出或刷新程序时会提示“提交内容尚未提交”，可继续编辑或丢弃并离开。程序不把列表保存到磁盘，退出后不能恢复。尚未加入列表的编辑另有放弃确认，放弃这次编辑不会移除已加入的其他文件；导入期间暂时不能关闭。
-
-与上游完全相同的文件会保留在列表预览中并标注无变化，不需要覆盖确认，也不计入最终 PR 的文件明细；全部文件均无变化时不能创建空 PR。列表中的原始日期始终决定提交目录，不会改成当天日期。
-
-共享补充说明最多 2000 个字符，随统一模板进入新 PR 正文。失败重试沿用本次列表请求标识，关闭弹窗再打开不会另建操作；如果远端已经产生本次相同结果，会核对后返回。它不会把内容不同的重试变成对已存在 PR 的修订，遇到远端状态不符时会停止并要求核对。预览基线变化后按提示重新预览并确认，避免沿用旧覆盖授权。
-
-客户端不会执行代码、修改本地原文件或保存解答草稿。创建 PR 不表示已通过 Codeforces 评测，也不表示仓库维护者已经合并。
-
-## 账号 PR 提醒与覆盖确认
-
-首页、题卡、详情和提交窗口统一依据**当前 GitHub 账号向当前题库发起的 PR**判断个人贡献状态。从真实 PR 变更文件识别题目，包含打开、关闭和已合并状态；同一道题在不同日期的关联 PR 放在同一个列表中，去重后按 PR 创建时间从新到旧排列。程序不根据文件名署名推断是否由当前账号贡献。
-
-同一道题的关联 PR 中有已合并记录时使用淡紫色；没有已合并记录但有处理中 PR 时使用淡绿色；仅有已关闭记录或尚无可确认关联时使用中性背景。汇总与列表都包含这道题在所有日期的关联记录，不显示当日／其他日期分类。多种 PR 状态的数量和链接同时展示，已关闭记录也保留；题卡整体颜色不会取代具体 PR 记录。同一个 PR 的重复响应按最新快照去重，避免旧状态把新状态覆盖回去；列表顺序依据创建时间。
-
-PR 提醒在后台逐页读取账号记录，与提交记录页的翻页显示分开；GitHub 搜索最多提供前 1000 条。加载中、失败或不完整时会明确提示，不把没有结果解释成“从未提交过”。索引只在内存中维护，不另建本地投稿台账。已有相关 PR 只是提醒，仍可继续投稿。
-
-如果本次目标路径已经有文件且内容不同，预览会显示旧代码、新代码和差异，需要**逐文件勾选确认覆盖**后才能提交。比较对象是本次读取的上游基线，修改发生在新投稿分支中，不直接写上游默认分支。差异中的新代码按实际提交规则规范化，包括去除 UTF-8 BOM、统一 LF 换行并补齐末尾换行；本地原始文件不会被修改。
-
-覆盖确认绑定到预览时读取的文件版本，提交前会重新核对；缺少确认或远端文件已变化时，客户端拒绝写入并要求重新预览。内容相同的文件会标注“内容相同”，不会要求覆盖确认。较大的旧文件可能只提供部分代码预览，复杂差异会退为两栏原文对照；界面会说明这种限制，确认前请核对仓库原文件。
-
-## 从 GitHub 读取提交记录
-
-登录后，提交记录查询**当前 GitHub 账号发起、目标为当前题库仓库**的 PR。手动在网页或 Git 中创建的投稿也会出现，不限于这台电脑或本客户端生成的记录。
-
-界面显示 PR 总量、标题和链接、创建时间及打开／关闭／合并状态；结果可以翻页并刷新。一个 PR 关联的题目根据 GitHub 返回的**实际变更文件路径**识别，并列出各题日期和文件；同一 PR 中有多道题时会一起显示。PR 标题或正文即使只写了一个题号，也不会覆盖真实文件关联。
-
-删除文件、其他目录文件或无法按题库路径识别的文件，单独列为其他变更，PR 本身仍保留。无法识别语言时不猜测语言。文件清单分页读取，GitHub 最多提供 3000 个变更文件；达到无法确认完整性的边界时显示截断提示，不把已读到的部分说成全部。
-
-没有投稿与请求失败是不同状态，网络出错时会显示错误与重试入口，不把错误当成“0 条投稿”。更换账号或目标仓库后会查询对应范围，不混入其他账号的历史。首页和列表的总量统计按 PR 计数，一个包含多题的 PR 仍计为一个 PR。
-
-这些历史记录来自 GitHub，本机不维护持久化投稿台账或解答草稿；本次尚未提交的列表只是独立的会话状态。题目卡片中的相关投稿状态和统计数据以实际读取到的 GitHub 结果为准，列表中准备好的文件不会被算作已创建 PR。
-
+Quit before editing these files manually. See [Security and privacy](security.md#local-data) for what is stored and how credentials are protected.

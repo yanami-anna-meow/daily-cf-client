@@ -1,203 +1,125 @@
-# 安全与隐私说明
+# Security and privacy
 
-本文说明客户端的登录权限、本地数据、题库同步与投稿边界。它描述实现的保护措施及其限制，不代表对所有平台、网络或本地篡改情况的安全保证。开发和发布验证方法见 [贡献指南](../CONTRIBUTING.md) 与 [发布指南](releasing.md)。
+English | [简体中文](zh-CN/security.md)
 
-## GitHub 登录和权限
+This page describes what Daily CF stores, what it sends to GitHub, and the checks applied before a submission. For everyday use, see the [user guide](user-guide.md); for source builds, see [Contributing](../CONTRIBUTING.md).
 
-客户端使用 GitHub Device Flow：主进程向 GitHub 请求设备验证码，用户在系统浏览器的 GitHub 页面完成授权。客户端不接收 GitHub 密码，也不需要在安装包中嵌入 OAuth Client Secret。OAuth Client ID 是应用标识，可以公开；它不能代替用户授权。
+## GitHub credentials
 
-高级设置标题提示“谨慎修改”，展开后持续显示风险说明；仅当实际 Client ID 与已保存值不同时，保存前显示旧值、新值并要求确认。取消确认不会保存设置，也不会丢弃当前输入。格式不符合规则的 ID 无法保存；格式合法但无效的 ID 可能使下次设备授权失败，另一有效且启用 Device Flow 的应用 ID 则改变 GitHub 授权对象，应先确认该应用可信。清空后本次运行不能使用浏览器授权；若安装包内置发布者 ID，下次启动会按原有规则补回默认值。此设置没有修改旧令牌或服务器授权，已有登录不会自动退出；保存改变的 ID 会取消尚未完成的授权流程。Client ID 本身是公开标识，更改也可恢复，不能将这个提示夸大为令牌泄露或不可逆操作。
+Browser sign-in uses GitHub's Device Flow. The main process requests a device code and polls for authorization while you approve it on `https://github.com/login/device`. The app does not receive your GitHub password and does not need an OAuth Client Secret. The Client ID is public.
 
-Device Flow 的设备密钥与访问令牌只由主进程处理。界面收到验证码、验证地址、过期时间以及账号基本信息，不会收到 OAuth 访问令牌。登录流程限制验证地址为 `https://github.com/login/device`，校验响应格式，处理过期、取消与限流；取消登录或切换登录流程后，旧流程不能覆盖新的账号状态。
+For Device Flow, access tokens and device secrets stay in the main process. The renderer receives the user-facing code, verification URL, expiry time and account information. With manual token sign-in, the token necessarily passes through the input field and a dedicated IPC call before the main process verifies and stores it. There is no renderer API for reading a saved token back.
 
-另有手动 Personal Access Token 登录入口。用户输入的 Token 会短暂经过界面和专用 IPC 接口，随后由主进程验证与保存；因此“令牌从不经过界面”仅适用于 Device Flow，不能用于描述手动输入方式。客户端不会通过公开接口把已保存的令牌读回界面。
+Device Flow requests `public_repo`. That scope grants access to public repositories the account can operate on, not just this problem library. The app's own checks restrict its submission flow to the configured upstream and a verified source repository; they do not narrow the token's GitHub scope. See [GitHub's scope definitions](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps).
 
-Device Flow 请求 `public_repo` 权限，用于创建公开仓库 Fork、写入个人提交分支和创建 Pull Request。这个 OAuth scope 覆盖账号有权操作的公开仓库，并不是只授权每日一题这一个仓库。客户端自身将操作限制在配置的上游及经核验的个人 Fork，但这不会缩小 GitHub 已签发令牌的权限。权限定义见 [GitHub OAuth scopes 文档](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps)。
+Changing the Client ID requires confirmation and cancels an unfinished device authorization. It changes the app used for future authorizations, not an existing token. An invalid ID can prevent the next sign-in; **Restore default** restores the build's ID to the form, which must then be saved. See [GitHub setup](github-setup.md).
 
-“退出登录”会取消本地登录流程、清除主进程中的当前凭据并删除保存的 `session.enc`，保留偏好设置和公开上游题库。它不负责撤销 GitHub 服务器上的授权。若需要完整撤销，可在 [GitHub 的授权应用设置](https://github.com/settings/applications)中撤销相应 OAuth App，或在 [Personal Access Tokens 设置](https://github.com/settings/tokens)中删除手动使用的 Token。不要把 Token、设备密钥或本地会话文件放进问题反馈、截图或解答代码。
+Signing out clears the current credentials and saved session, but does not revoke GitHub's server-side authorization. Revoke an OAuth app under [GitHub Applications](https://github.com/settings/applications), or remove a manually supplied token under [Personal access tokens](https://github.com/settings/tokens).
 
-## 本地保存的内容
+## Local data
 
-桌面数据根目录默认固定为 Electron `appData` 下的 `Daily CF`，再按上游的 `owner/repo` 分目录；修改应用显示名称不会改变默认路径。隔离测试可通过启动参数 `--user-data-dir=<绝对路径>` 指定另一数据根目录，其中的登录凭据和设置独立保存。这个参数只选择本地资料目录，不会改变远端上游；使用测试仓库仍需要相应的测试构建配置。
+The desktop data root is `Daily CF` inside Electron's `appData` directory, with separate directories for each upstream repository. **Settings → Local files** shows the actual paths. The `--user-data-dir=<absolute path>` launch argument selects a separate local data root for testing; it does not change the remote upstream.
 
-该目录中包含：
-
-| 文件或目录 | 内容 | 存储方式 |
-| --- | --- | --- |
-| `session.enc` | 已验证的 GitHub 访问令牌 | 系统安全存储可用时，通过 Electron `safeStorage` 加密 |
-| `data.json` | 偏好设置、个人 Fork 绑定和 PR 模板 | 本地明文 JSON；新写入内容仅包含已校验的设置 |
-| `library.git/` | 配置上游的公开 Git 对象、仓库身份标记和当前版本指针 | 对象保存在无工作区的 `objects-<UUID>.git/` 中；旧 `objects.git/` 仅用于只读迁移，均不加密 |
-| `data-legacy-<内容摘要>.json` | 从旧版迁移时保留的原始数据文件 | 仅用于保全旧数据的明文备份 |
-| `data-corrupt-<时间戳>.json` | 无法读取的设置或旧数据文件 | 原文件备份 |
-
-从 0.3.0 起，客户端持久保存上游题库的 Git 数据，包括题单、题解和所有作者已经公开在上游的参考代码。0.3.1 可在启动和进入页面时先读取已有 Git 对象，同时在后台检查更新；本次运行内还保留已经读过的题库结果。更新失败时允许继续显示这些内容，但必须标明仍是上次读取的结果，不能把它报告为本轮同步成功。账号 PR 和 Codeforces 题面不写入这个题库；客户端没有持久化个人草稿或提交台账。
-
-启动时只清理当前仓库资料目录直接子级中的旧远端数据普通文件：`library.json`、`day-latest.json`、日期有效的 `day-YYYY-MM-DD.json`，以及对应的 `.json.tmp`。清理不递归，不删除 `library.git/`、设置、会话、旧数据备份、损坏文件备份或不匹配的文件；浏览器预览只清理当前仓库命名空间中的对应旧键。删除失败时保留文件并提示，程序不会读取这些旧 JSON 作为回退，也不会再写入该旧格式。
-
-用户选择的解答文件以只读高亮形式预览。**提交列表由应用会话内存维护**，文件代码、现场署名和补充说明不写入 `data.json` 或浏览器存储；关闭列表、重新打开列表或切换应用页面都会保留已加入的文件。成功完成投稿后清空本次列表；实际退出程序或刷新整个应用窗口会清除会话内容，有待提交文件、说明或尚未加入列表的修改时，正常的原生关闭和刷新流程会先触发离开确认。选择继续编辑会保留内容，确认离开后不提供草稿恢复；强制结束进程或崩溃也可能丢失这些内存内容。
-
-尚未加入列表的文件信息修改另有放弃确认，放弃本次编辑不删除已经加入列表的文件。设置离开确认中的“保存设置并离开”只保存设置，不把提交列表写入磁盘。用户原始文件始终留在选择时的位置；程序不会执行上传代码，也不会自动改写原始文件。
-
-从 0.2.4 起，文件署名也只在本次提交内存中保存，逐文件现场填写，不保存默认值、不从 GitHub 登录名自动填充。旧设置中的 `author` 不再恢复或写入新设置；旧版原始文件或历史备份仍可能留有该字段，移除功能不代表安全擦除了这些旧文件。
-
-升级前的数据需要单独区分：读取旧 `data.json` 时仅恢复设置，不将旧代码或台账加载到功能界面。如果原文件包含旧的非空 `drafts` / `history` 字段，第一次保存设置前会按原文件 SHA-256 的前 16 位创建 `data-legacy-<摘要>.json`，再把 `data.json` 改为仅含设置；相同原文只备份一次，备份失败则停止保存。保存设置前的旧文件，以及迁移或损坏文件备份，仍可能含旧版代码和记录，客户端不会静默删除这些历史数据。移除旧功能不等于磁盘上的旧内容已被安全擦除。
-
-设置和会话文件更新采用先写临时文件、再重命名的方式，减少中途退出造成的半写入文件。0.3.6 改用随机名称、独占创建的临时文件，并通过创建时取得的文件描述符写入，避免截断预先存在的同名临时文件或链接目标。其存储层创建目录和文件时分别请求 `0700`、`0600` 权限；这不等于 Git 题库中的每个文件都采用相同权限，也不代表全部本地读写均能防御其他进程同时改动路径。具体效果取决于操作系统和文件系统，不能将它视为跨平台访问控制保证。
-
-`safeStorage` 的保护依赖当前操作系统账户及其密钥存储。Linux 若没有可用的 Secret Service / Keyring，Electron 可能报告 `basic_text` 后端；客户端明确拒绝在该模式下保存或读取令牌，并把本次登录只保存在内存中，完整退出程序后需要重新登录。系统安全存储不可用时也采取同样处理。若已有加密文件无法解密，客户端提示重新登录，不会降级为明文保存令牌。平台差异见 [Electron safeStorage 文档](https://www.electronjs.org/docs/latest/api/safe-storage)。
-
-公开题库、设置及历史迁移备份没有应用层加密。同一系统账户下能读取应用数据目录的软件，通常也能读取它们；系统安全存储也不等于可以抵御已经取得当前账户权限的恶意程序。卸载安装包不应被视为已清理应用数据。备份或清理该目录前，请先退出程序，并确认是否需要保留旧版备份中的内容。
-
-## 上游题库同步
-
-桌面端通过随应用打包的纯 JavaScript `isomorphic-git` 读取 GitHub 上的公开上游，不调用系统 Git，也不要求用户安装 Git。首次建立浅层对象库，后续使用 Git fetch 增量取得当前默认分支所需的对象；浅层限制的是提交历史深度，当前版本的完整文件树仍需下载。默认分支名称和当前提交来自远端，不将 `main` 或 `master` 写死。
-
-题库目录固定在当前上游资料目录下的 `library.git/`，保留 `daily-cf-repository.json` 核对仓库身份。0.3.6 的 `daily-cf-active.json` 使用版本 1 格式，记录 `repository`、`generation`、`revision` 和 `branch`；`generation` 必须是受限的 `objects-<UUID>.git` 名称，不能指定任意路径。每一代是 bare 对象库；正常更新继续增量同步当前代，迁移或修复才另外建立新代。同步不创建工作区、不把远端文件签出到本机路径，也不执行仓库代码、Git hooks 或子模块。它不接管用户已有仓库，不保存待提交的源文件，也不用于 push、提交代码或维护个人 Fork；投稿继续走单独的 GitHub API 流程。已经合并到公开上游的用户代码可能随题库一起下载，这与保存用户尚未提交的代码、署名偏好或草稿不同。
-
-没有当前版本指针时，旧版 `objects.git/` 可提供只读快照；同步先核验旧快照，将对象复制到新代后继续下载，不改写或删除旧对象库。新的快照通过完整性核验后才原子发布当前版本指针。程序不会递归删除旧代、修复失败留下的新代或未知文件；这些目录可能继续占用磁盘，迁移不等于旧内容已经擦除。
-
-同步只访问配置上游在 `https://github.com/<owner>/<repo>.git` 下的 Git 读取端点。传输不接收账号访问令牌，剥除认证和 Cookie 请求头，省略浏览器凭据并拒绝 HTTP 重定向。读操作中的 POST 是 Git 下载协议请求，不是向 GitHub 创建提交或推送分支。一次 Git 下载默认限制累计 256 MiB；修复时重新下载使用新的传输额度，但仍与本轮同步共用 180 秒计时。后台工作线程另有 210 秒请求保护，覆盖解压或索引处理无法及时响应网络计时器的情况。这些限制不是本地题库的总占用上限，逐次更新保留的对象可能继续占用磁盘空间。
-
-同一进程只共享正在进行的同步，不将一次已完成同步当成以后请求的更新检查。磁盘锁协调对同一目录的写入。仓库身份标记不符、根目录或其祖先为链接、未带有效身份标记的非空目录会停止同步，不通过删除目录或更换标记来接管；有效题库根目录中的未知旁置文件保留原样。对象库读写校验目录边界及文件类型，拒绝跟随所检查的对象路径中的符号链接或硬链接；写入使用随机且独占创建的临时文件。修复当前版本指针时可以原子替换该固定路径上的链接项，但不读写其指向的文件。
-
-0.3.6 在同步时重新核验已发布快照的实际对象数据，不仅依赖提交 SHA、文件时间或界面内存中的解析结果。确认当前版本指针、所选对象库或其对象损坏后，本轮最多尝试一次重建：另建一代，从公开上游重新下载并核验，再发布新指针；原代保留。普通网络失败、磁盘空间或权限错误本身不触发重建，根目录身份不安全时也不自动修复。修复失败仍返回错误，不能把已有页面内容报告为本轮同步成功；内存中先前读到的内容可继续标为旧内容显示，已损坏的磁盘快照则可能无法读取。
-
-完整性核验检查实际读取的对象字节、pack／idx 对应关系、对象内容标识及当前快照可达内容，并限制解压和增量展开：单个展开对象最多 128 MiB，展开数据累计最多 512 MiB；本次核验的物理对象文件总量也限制为 512 MiB。达到限制时明确失败，不把超限等同于需要反复下载的普通损坏。这些是读取器的边界，不是整个进程内存或磁盘占用的保证，也不意味着已经覆盖任意本地恶意篡改。已获得同一操作系统账户权限的程序仍可能改变本机文件和运行环境。
-
-读取以明确的提交 SHA 为基准，通过 Git 对象解析文件，不拼接远端路径去读取本机工作区。目录遍历校验路径和对象标识，只纳入普通文件，跳过符号链接与子模块，并限制目录深度及条目数量；题单、题解和参考代码的文本读取上限为 1 MiB。更新读取使用刚同步确认的 SHA，本地预览使用上次已发布到本机的 SHA；两者不能混作同一次更新结果。
-
-### 已有内容与后台更新
-
-`getLocalLibraryView` 是独立的只读入口，支持题单、月份或全库视图、题解资料和指定参考代码。它通过 `getLocalSnapshot` 读取当前版本指针选择的对象库；尚无指针时才读取旧 `objects.git/` 的私有快照引用，并核验本地仓库身份、提交和根文件树。该入口不访问网络、不触发同步或修复、不创建目录。没有已发布快照时返回空结果；发现指针或快照损坏则报错，不擅自改读另一代。同步仅在新快照通过完整性核验后发布指针，本地读取不会把尚未发布的新代当成可用快照。
-
-启动、每次页面切换和手动刷新仍会发起更新检查。界面可先显示同一资源在当前会话中的结果，或从已有 Git 快照读取；全新的安装没有这些内容时，继续显示下载与加载进度。详情、题解和参考代码的内存读取器按资源身份区分内容，并维护有限数量的最近结果；最新题单和完整全库视图由题库控制器在会话中保留。这些解析结果不写入新的 JSON、浏览器存储或个人草稿文件。
-
-0.3.5 在远端同步成功后核对提交 SHA、月份目录及各月题单数量；这些信息相同，且已有完整全库结果时，直接复用该范围，更新本轮快照信息，不再逐月重复读取。全库结果不完整或版本、目录信息变化时，仍按新快照读取，全部月份成功后才整体替换完整旧视图。部分月份失败、限流或用户停止时，继续显示原先一致的视图并说明更新未完成，不把新旧版本的月份拼接在一起；没有旧视图的首次加载可显示本轮已经取得的部分，并保持未完成提示。迟到的旧请求不能覆盖当前页面的新结果。
-
-0.3.5 的解析复用仅保存在内存：题单按解析器版本、界面语言、日期和文件 blob OID 区分，并共享相同读取中尚未完成的 Promise；失败条目移除，以便重试。题单条目数与解析结果序列化大小有上限，目录索引只保留最近使用的两个提交版本；Git 提交与目录树按不可变 OID 做有数量上限的复用。每次读取仍先核对所请求版本中该题单确实存在，返回的来源链接指向本次提交 SHA，不能用旧解析恢复已删除或改为符号链接的文件。这些机制不使用有效时间窗口跳过同步，不新增磁盘存储，也不改变每次进入页面和手动刷新仍检查远端的规则。
-
-通信失败与已确认缺失分别处理。网络、同步或读取错误可保留旧内容，但界面必须同时显示检查中或更新失败的状态。新读取明确返回 `library_content_missing`，或成功返回空题解、空文件列表时，清除对应旧结果；相关读取器会记住近期已确认缺失的资源，避免返回页面时立即用旧卡片或迟到的本地预览恢复它。只有后续成功读取才能再次显示该资源。Git 对象中可能仍留有历史数据，界面清除旧内容不等于磁盘安全擦除。
-
-保留题库用于阅读，不授予远端写入许可。提交列表继续只保存用户当前选择的文件；预览、覆盖确认和创建 PR 仍通过原有联网流程核对题目、账号、Fork 和远端文件 SHA，不能凭保留的页面内容跳过检查。
-
-浏览器开发预览继续使用 GitHub API 和公开原始文件接口，不创建本地 Git 对象库，本地视图入口返回空值；当前运行内的页面结果仍可在后台读取时保留。其读取及限流规则与桌面版分开。Codeforces 题目由系统默认浏览器打开，客户端不读取题面。
-
-## 窗口和内容隔离
-
-- Electron 窗口启用 `contextIsolation`、`sandbox` 和 `webSecurity`，关闭渲染进程的 Node.js 集成。
-- preload 仅公开固定的业务接口，不向界面暴露任意 IPC 调用或文件系统接口。主进程校验 IPC 是否来自当前窗口的主 frame 及预期页面，并在保存、读取资源和提交时校验相关参数。
-- 窗口拒绝页面自行导航、弹出新窗口以及请求摄像头等权限。外部链接通过主进程检查后交给系统浏览器打开。
-- 外部链接限定指定主机：`github.com`、`codeforces.com`、`www.codeforces.com`、`espresso.codeforces.com`、`yawn-sean.github.io` 和 `docs.github.com`。Codeforces 原始题目链接允许 HTTP 或 HTTPS，其余允许主机仍要求 HTTPS；带账号密码或不允许的端口会被拒绝。校验后保留原链接，不主动改写协议、域名、查询参数或片段。没有额外的题面链接接口或任意网页读取入口。
-- 页面设置 CSP，脚本限定为应用自身资源，禁止插件对象。题解 Markdown 以受限的 React 组件渲染，不将原始 HTML 插入页面。
-
-## 在系统默认浏览器查看题目
-
-0.3.4 已移除 Codeforces 直接读取、题面解析与应用内渲染，以及此前的独立辅助浏览器。`getStatement`、`getStatementInBrowser`、`cancelStatementBrowser` 和 `openStatementLink` 不再存在；程序不会自动请求题面或创建网站验证窗口。
-
-点击原题入口时，链接经过既有 `openExternal` 白名单检查，再交给系统默认浏览器。网站登录、cookie、页面脚本和验证由该浏览器自行管理；客户端不读取这些数据，也不向浏览器传递 GitHub 令牌。题库提供的提示、Markdown 题解、数学公式与参考代码继续在应用内按原有安全边界展示。
-
-旧版题面读取、解析与辅助窗口的测试记录保留为历史证据，不代表当前产品仍包含这些功能。
-
-## 剪贴板与源码读取
-
-系统剪贴板只在用户主动点击验证码、复制按钮或使用相应键盘操作时写入文本。桌面界面的 `copyText` 通过固定 IPC 接口交给主进程处理，沿用调用来源校验，并拒绝非字符串、空字节和超过 1 MiB 的 UTF-8 文本。主进程等待 Electron 文本写入调用完成后返回，界面据此显示复制成功或失败；客户端不向界面提供读取或监视系统剪贴板的产品接口，也不会为确认复制而读回剪贴板。浏览器预览使用浏览器文本复制能力及兼容回退，失败时保留可手动选择复制的文本。
-
-参考代码和用户选择的解答文件均作为只读文本展示；语法高亮只生成文本节点和样式，不把源代码解释为 HTML。客户端没有编辑、编译或执行代码的功能。选择文件使用系统文件选择框，按 UTF-8 读取，限制文件大小并拒绝空字节；修改解答需在本地编辑器完成后重新选择文件。参考代码读取限定为上游 `daily_problems/.../personal_submission/` 中受支持的文件类型。桌面端从已确认版本的 Git 对象读取，浏览器预览从公开文件接口读取；两者均校验路径及文本大小，网络请求拒绝重定向。
-
-## 网络访问和提交边界
-
-当前实现没有自建账号服务器、使用分析上报或崩溃遥测服务。桌面题库通过 `github.com` 的 Git 读取端点同步；账号、Fork、投稿检查、提交和 Pull Request 操作仍访问 `api.github.com`，继续处理 GitHub API 限流。Device Flow 使用 `github.com` 的固定登录端点。浏览器预览的目录和题单通过 GitHub API 读取，公开题单、题解和代码可通过 `raw.githubusercontent.com` 读取。头像可从 `avatars.githubusercontent.com` 加载。用户主动打开的 Codeforces 题目链接交给系统默认浏览器；客户端不抓取题目 HTML、公式或图片，也不读取该浏览器的登录状态。
-
-账号及投稿相关请求仅向 GitHub API 附带访问令牌，公开 Git 题库同步和原始文件请求不携带令牌，认证请求和仓库请求均拒绝 HTTP 重定向。客户端返回整理后的错误信息，不把认证服务的原始网络错误直接显示给界面。
-
-客户端区分两种仓库：**上游仓库**提供题库，并接收 Pull Request；**投稿 Fork**保存当前用户的提交分支。正式构建默认使用 `Yawn-Sean/Daily_CF_Problems` 作为上游，隔离测试构建可以在构建时配置测试上游。设置中的个人 Fork 绑定只选择投稿来源，不会改变题库来源或 PR 的目标上游。
-
-主进程提供查询、校验和创建个人 Fork 的专用接口。绑定新地址时会向 GitHub 核验，提交时再次检查归属及来源；账号变更后，旧账号下的绑定不会获得新账号的写入许可。仓库名可以经过重命名，但仓库必须属于当前登录用户，并且 GitHub 返回的 `parent` 或 `source` 指向当前配置的上游。其他账号、组织和无关仓库均不接受绑定。查询候选 Fork 有分页和检查数量上限，数量较多时提示通过仓库地址绑定，以控制 API 请求量。
-
-生成 PR 的预览和提交必须先有用户明确保存的来源绑定。只读查询不会自动选中或创建 Fork，即使只有一个候选也需要用户选择；在提交窗口中点击“使用这个 Fork”后，客户端重新验证并保存绑定，再继续原投稿。创建入口先展示仓库名称和当前账号下的完整地址，用户确认后才发送创建请求；不会仅因查到已有候选就笼统禁止创建。GitHub 若返回已有 Fork 或与请求名称不符的仓库，客户端提示没有按该名称创建，不当成新建成功，也不自动绑定。用户点击“创建并选择”成功后，新仓库仅成为表单中未保存的候选，仍需保存设置或确认使用才生效，旧绑定在保存之前保持不变。绑定失效、仓库改名或归属不符时会报错，不会悄悄改用另一个仓库。
-
-删除投稿 Fork 后，只要 GitHub 仍提供上游 PR 记录，客户端仍可直接读取这些历史记录。提交重试仍需核验原来源仓库和实际文件内容；不能把同名重建的仓库认作原投稿来源。失效绑定不会触发自动重建 Fork 或更换来源。
-
-有一个明确的例外：如果当前用户本来就是配置上游的拥有者，可以明确选择并绑定这个仓库，在其中创建独立提交分支，再向默认分支提出 PR。这使账号自己的测试仓库能充当测试上游；绑定操作本身不能把任意无关仓库提升为上游。该路径同样要求先保存绑定，并通过分支和 Pull Request 完成投稿，不直接写入默认分支。
-
-创建提交前，客户端重新确认当前账号、上游仓库、默认分支、日期和题目，按仓库规则生成目标路径，通过 GitHub API 完成操作，不要求用户安装 Git。0.2.8 将单文件和多文件统一到提交列表的新建 PR 流程，来源仓库与目标上游同时出现在确认预览中。已有 PR 仅供读取，没有向其追加文件或修改内容的入口；旧单题提交和已有 PR 修改接口已移除。更改 Fork 绑定不会迁移已有 PR。
-
-选择文件、加入列表及预览不会创建远端投稿；用户确认提交后，代码、署名和说明会随公开的 GitHub 提交或 PR 发布。本次说明通过模板进入新 PR 正文。客户端不另存本次代码或本地提交台账。“提交成功”表示已创建或核验恢复本次 PR，不代表代码已通过 Codeforces 测试或已被上游合并。
-
-## Fork 同步与上游版本
-
-预览只读取并显示 Fork 默认分支相对当前上游的同步状态，不在预览时修改分支。用户提交且所需的文件覆盖确认通过后，客户端在准备发布代码前重新核对状态，按以下边界处理：
-
-| Fork 默认分支状态 | 处理方式 |
+| Item | Contents |
 | --- | --- |
-| 与上游相同 | 保持不变 |
-| 仅落后上游，没有独有提交 | 使用非强制更新快进到本次核对的上游版本，并重新读取验证结果 |
-| 已包含上游，另有个人提交 | 保留这些个人提交；新建 PR 仍从本次核对的上游最新版本创建独立分支，不把 Fork 默认分支上的其他工作带入新 PR |
-| 与上游各有独有提交，已经分叉 | 停止提交，要求用户先在 GitHub 处理；不强制推送、不重置默认分支 |
+| `session.enc` | Verified GitHub token, encrypted with Electron `safeStorage` when secure storage is available |
+| `data.json` | Plain-text settings, source repository binding and PR templates |
+| `library.git/` | Public upstream Git objects, repository identity and the active revision pointer |
+| `data-legacy-<digest>.json` | Original settings/data retained during migration |
+| `data-corrupt-<timestamp>.json` | Backup of an unreadable settings/data file |
 
-快进仅适用于上述合格的 Fork 默认分支。客户端不会把新文件追加到旧投稿分支；如果配置上游本身属于当前账号并被明确绑定，投稿仍使用独立分支，不同步或直接修改该上游的默认分支。
+The submission list, selected code, per-file author names and notes exist only in memory. Closing its dialog or changing pages keeps them. Normal window close and reload actions ask before discarding them; a crash or forced exit can lose them. Original solution files are never edited or executed by the app. PR records are read from GitHub rather than persisted as a local ledger.
 
-同步与投稿是多个 GitHub 操作，不能作为一个整体事务回滚。Fork 默认分支可能已经快进成功，而之后的代码上传、分支发布或 PR 创建失败；客户端会保留已完成的同步，并在重试时重新读取实际状态。
+Older versions may have stored drafts, history or an author preference. Migration restores only supported settings. Before replacing a nonempty legacy drafts/history file, it preserves a content-addressed backup; a backup failure stops that save. Old files and backups can still contain that data. Removing a feature does not securely erase its old files.
 
-## 提交列表、新建 PR 与覆盖确认
+Settings and sessions are written to an exclusively created temporary file and then renamed, reducing partial writes. The storage layer requests private file/directory permissions where supported. Their effect depends on the OS and filesystem.
 
-一次投稿可包含不同日期的多道题，也可为同题加入不同扩展名或署名的多份文件，所有解答均由用户逐项选择本地文本文件。文件选择器允许任意扩展名；语言预设只用于快捷填写。全局入口可以先打开空列表，但 PR 预览和提交都要求 1 至 50 个文件。主进程校验每个文件最多 256 KiB、规范化后的代码总大小最多 5 MiB，以及各条说明和本次说明分别不超过 2000 个字符。每项重新校验日期、题号、实际扩展名和署名，按仓库规则生成的目标路径不得重复；各日期的真实题单按同一个已固定的上游提交版本检查。
+`safeStorage` depends on the OS account and key store. On Linux, an unavailable keyring or the `basic_text` backend means the app keeps the token only in memory and asks you to sign in again after exit. It does not fall back to saving a plain-text token. A session that cannot be decrypted requires another sign-in. See [Electron safeStorage](https://www.electronjs.org/docs/latest/api/safe-storage).
 
-扩展名最多移除一个开头的点，保留大小写，不按语言预设重写。它不能为空、包含路径分隔符、控制字符、Windows 文件名禁用字符或百分号，也不能以点或空白结尾；生成后的完整文件名不得超过 255 个 UTF-8 字节。上传保持文本与大小边界，不执行用户代码。实际扩展名统一用于目标路径、队列判重、上游覆盖核对和 `{{extension}}` 模板变量；`.c` 与 `.C` 分别识别为 C 和 C++，未知扩展名按纯文本显示，不因未列入语言预设而拒绝提交。
+The public library, settings and migration backups are not encrypted. Software running with access to your OS account may be able to read or alter app data; secure storage is not protection against an already compromised account. Uninstalling the app should not be assumed to remove its data. Quit before manually editing, backing up or cleaning the data directory.
 
-本地导入严格按 UTF-8 解码，拒绝非法编码字节与空字节；解码失败会返回错误，不用替代字符改写原始源码。后续提交仍按既有规则规范化 BOM、换行和末尾换行，并检查规范化后的大小。
+## Local library and integrity checks
 
-加入列表前，`inspectSubmissionFile` 按生成的完整路径只读检查当前上游文件是否存在，未登录也可调用，不要求先绑定 Fork。它仅为入列提示，不代替最终题单、账号和覆盖校验；检查失败时，用户可以明确选择“仍然加入列表”，生成 PR 前必须重新校验。若列表中已有相同目标路径，界面展示两份代码差异，并要求明确确认替换列表中的文件。这个本地替换与远端旧文件覆盖是两次独立确认，前者不授予远端写入许可。
+The desktop app uses bundled `isomorphic-git` to read the public upstream. It needs no system Git. An initial shallow download includes the current file tree; later fetches update it incrementally. The branch name and revision come from the remote rather than a hard-coded `main` or `master`.
 
-新 PR 从上游已读取的版本创建独立分支。提交列表的 `requestId` 保存在 App 会话内存中，关闭或重新打开列表不会更换；提交成功后清空列表并生成下一次标识。请求身份还包含账号、文件内容和说明等数据，因此修改这些内容会改变请求身份。相同身份的网络重试只核验并返回本次已有 PR，不修改其标题、正文、代码或分支，也不会仅凭题目或路径相同就认领另一个 PR。后端会核验来源仓库、客户端标记、原始父提交、实际文件内容及 PR 变更文件；只含标记而内容不符的结果不会被接受。
+The library is a bare object store without a checked-out working tree. It does not execute upstream code, hooks or submodules, and it is not used to push solutions or maintain your fork. Submission uses a separate GitHub API flow.
 
-与上游完全相同的文件可以留在列表中供检查，但不会形成 PR 文件变更；混合列表的标题、正文和数量变量按实际有变化的项目生成。若所有文件均与上游相同，预览仍可查看，创建操作在写入前停止，不生成空 PR。已有同题 PR 只是提醒，不妨碍为新的请求创建独立投稿；这不跳过文件内容和覆盖检查。
+Each store has a repository identity marker. The active pointer names a restricted `objects-<UUID>.git` generation, revision and branch. Synchronization checks directory boundaries, file types and repository identity. Unexpected identities, unsafe root paths and nonempty unrecognized directories stop the operation. Checked object paths reject symbolic and hard links; ordinary Windows short-path aliases are accepted after validating the directory structure. The app does not take over a user repository by replacing its identity marker.
 
-预览发现上游目标文件已存在且代码不同，会显示完整路径、旧代码、新旧差异及逐文件覆盖确认框。替换发生在新投稿分支，不直接覆盖上游默认分支。界面只有在用户明确勾选后才能提交相应覆盖，同时发送目标路径和旧文件的 Git 内容 SHA。后端重新读取远端版本，缺少确认或 SHA 已变化时，在 Fork 同步和投稿写入前拒绝操作并要求重新预览。旧代码预览最多展示 256 KiB，超出时明确标记为部分预览；无法取得可准确展示的旧文本时不能确认覆盖。内容相同的文件不需要覆盖确认，界面返回调整后会清除旧确认。
+Synchronization verifies actual Git object data, pack/index relationships, object IDs and content reachable from the selected snapshot. When corruption is detected, it can build a new store from the public remote, verify it, and atomically publish the new active pointer. There is at most one rebuild attempt per synchronization. Network failures, lack of space and permission errors are reported rather than treated as a reason to repeatedly download.
 
-发布时先准备 Git 代码对象、文件树和一个完整提交，再创建新的分支引用；不会通过更新旧投稿分支来修订 PR。网络中断时可能已经上传代码对象或发布分支。重试发现本次分支已存在而 PR 尚未创建时，只在基础版本与内容都核验一致后沿用该分支创建 PR，不改写分支。若该未完成分支的基础版本已落后于当前上游，后端要求重新预览；界面更换请求标识并清除旧预览和覆盖确认，以新分支继续，保留旧分支。
+Legacy stores are migrated without changing the old copy. Old generations, unsuccessful repair stores and unknown files are not recursively removed, so disk use can grow. An unsafe directory identity is not repaired automatically. A damaged snapshot may be unreadable even while an earlier result remains visible in memory.
 
-分支发布的完整性不代表 Git 对象、分支、Fork 同步和 PR 创建是一个跨接口事务。客户端不自动删除已经产生的对象；检测到并发变动、归属不符或不能核实的远端状态时会停止，并可能提示部分操作已完成但最终确认尚未完成。对已经创建的本次 PR，恢复流程只读核验实际结果，不以重试为由改动已有 PR 或投稿分支。
+Library transport is limited to the configured repository's Git read endpoints on `https://github.com`. It sends no account token or cookies and rejects HTTP redirects. Git's read protocol uses POST requests as part of downloading; these requests do not publish commits or branches.
 
-## 我的贡献与提交记录
+Current resource limits are:
 
-首页贡献统计和提交记录直接查询 GitHub。主进程先确认当前令牌所属账号，再使用 `repo:<当前上游> is:pr author:<当前账号>` 查询范围；收到记录后再次核对作者和仓库。因此这里展示的是当前账号向当前上游发起的 PR，包含在 GitHub 网页或其他工具中手动创建的投稿。统计口径是 PR 数；一个包含多道题的 PR 仍计为一次投稿。
-
-每个 PR 的题目关联来自 GitHub 返回的实际变更文件列表。客户端按 `daily_problems/.../personal_submission/` 路径核对日期并识别题号和实际扩展名，一个 PR 可以关联多道题及多个文件；PR 标题、说明或客户端标记不能单独证明提交了哪些题。被删除的文件、无关路径和无法识别的文件作为其他变更记录，不计作新增解答；未知语言的扩展名也可根据有效路径识别题目，界面显示已知语言名称或保留扩展名。即使没有可识别的题目文件，该 PR 也仍在当前账号的贡献记录中。
-
-文件列表分批读取，每批 100 条，最多读取 30 批。达到完整末页上限、或分页中出现重复路径而无法确认完整性时，会设置文件列表不完整标记；界面据此提示只显示已读取的题目文件，不把部分结果当成该 PR 的完整题目集合。
-
-记录和统计只保留在当前界面的内存中，不写入本地台账。切换账号或上游时，界面清空旧结果；晚到的旧请求不能覆盖新账号的结果。读取失败时明确显示错误，不把失败当作“没有投稿”，也不使用其他页面的旧结果。GitHub 搜索分页每页 50 条，最多可展示前 1000 条；超过上限或返回不完整结果时会显示提示。总数、待合并和已合并计数来自 GitHub 查询，已关闭数量由总数减去待合并和已合并数量计算，不能将搜索延迟或不完整结果解释为投稿丢失。
-
-用于题目重复提示的 PR 加载与历史列表的可见分页分开：后台按顺序请求当前账号的后续页面，最多收集 1000 条，无需用户先在历史列表逐页点击。本轮读取结果用于当前界面显示，不作为后续请求的缓存。加载尚未结束、请求失败、搜索截断或 PR 文件清单不完整时，题目状态不被视为完整。
-
-历史记录保持只读，包含手动创建或旧版客户端创建的 PR。0.2.8 不提供从记录追加文件、修改 PR 标题正文或更新其投稿分支的功能；需要处理已有 PR 时，可通过 GitHub 页面操作。
-
-## 重复题目提醒与现场文件署名
-
-从 0.2.4 起，全程序只按当前 GitHub 账号向当前上游发起的 PR 展示个人贡献状态。旧的文件署名索引、对应 IPC 和界面已移除，不通过文件名相似或署名相同推断当前账号的贡献。PR 查询结果只在内存中保留，按账号和上游隔离，并忽略过时响应。
-
-题目提示区分同题同日与其他日期的关联 PR；已有记录只是提醒，用户仍可继续提交。现场填写的文件署名参与本次目标路径和模板，不改变实际 GitHub 作者，也不改变贡献状态。实际目标路径中已有不同内容时，无论署名文字或 PR 状态如何，都必须预览旧版本并完成 SHA 绑定的覆盖确认。
-
-## 自定义 PR 模板
-
-客户端仅保存一份 PR 标题模板和一份正文模板，单题与多题新建 PR 共用。模板仅做一次 `{{变量名}}` 文本替换，不求值、不运行脚本，也不递归解释变量值中的模板语法。模板不会改变提交路径、账号或目标仓库。
-
-| 含义 | 变量 |
+| Operation | Limit |
 | --- | --- |
-| 日期 | `date`、`date_compact`、`date_range` |
-| 题目信息 | `problem_id`、`problem_label`、`problem_url`、`rating`、`rating_source`、`problem_type` |
-| 文件信息 | `language`、`extension`、`author`、`filename`、`path` |
-| 本次说明与账号 | `notes`、`login` |
-| 数量与明细 | `problem_count`、`file_count`、`problem_list`、`file_list` |
+| One Git download | 256 MiB transferred |
+| Synchronization, including a repair retry | 180 seconds, with a separate 210-second worker guard |
+| One expanded Git object | 128 MiB |
+| Expanded data or physical object files checked in one verification | 512 MiB each |
+| One problem list, editorial or reference text file | 1 MiB |
 
-全部 20 个变量均可用于任意文件数量。存在实际变更时，模板只展开有变更的项目：`date` / `date_compact` 取这些项目的最早日期；题目、难度、语言、署名、文件名和路径等字段按本次展开顺序去重，以顿号连接。各字段独立去重，因此需要逐题对应关系时应使用 `problem_list` 明细表或 `file_list` 文件列表。`problem_count` 按“日期 + 题号”去重，`file_count` 是实际变更文件数。全列表无变化时仍可预览模板，但不能创建空 PR。自动明细表会转义标题和说明中的 Markdown 表格字符，并只为受支持的 HTTPS Codeforces 地址生成原题链接。
+These bound particular operations, not total process memory or accumulated disk usage. Exceeding a limit reports a failure. These checks also do not guarantee resistance to arbitrary changes by another process with the same OS-account privileges.
 
-预览和提交均使用同一套模板展开规则，并重新校验题号与题目信息。未知变量、不完整的双花括号和以 `daily-cf-` 开头的客户端保留注释会被拒绝；空模板使用默认值。展开后的标题必须是单行，以题目日期 `YYYYMMDD` 和空格开头，批量取最早日期，长度不超过 256 个字符；正文不超过 60000 个字符并拒绝空字节。正文可以使用 Markdown，输入内容会随 PR 公开，因此不要在模板中放入凭据或私密资料。
+### Previous content during updates
 
-新建 PR 时，后端在展开的正文末尾追加 `daily-cf-client`、`daily-cf-payload` 和 `daily-cf-batch-paths` 注释，对应 Git 提交信息带有路径集合和 `daily-cf-batch-content` 内容摘要，用于核对本次请求及恢复重试。自定义模板和提交说明不能注入客户端保留标记，展开结果也会再次检查。标记与摘要是公开信息，不是秘密或授权凭证；后端仍须核验真实的 GitHub 账号、仓库、分支、版本与文件内容。恢复已有结果不会重新应用修改后的模板或更新原 PR 正文。
+Local reading uses the published snapshot and does not itself contact the network, create directories or repair data. It does not expose an unpublished replacement store. Startup, page changes and refresh still check the remote.
 
-## 维护与问题反馈
+The app keeps bounded parsed results in memory. After a successful synchronization, it can reuse a complete archive if the revision and directory information match. Otherwise it reads the new snapshot before replacing the complete old view. Failed or interrupted updates keep the old consistent view with an update notice; first loads may show the part read so far.
 
-依赖检查结果和修复理由见 [依赖审计记录](./dependency-audit.md)。依赖审计、隔离配置和输入校验各有覆盖范围，不能据此宣称客户端不存在漏洞。发现问题时，请提供客户端版本、操作系统、可复现步骤和经过脱敏的错误信息。涉及令牌或可利用的安全问题，应通过维护者提供的私密渠道联系，避免在公开 Issue 中附上凭据或会话文件。
+A confirmed deletion or a successful empty result clears the corresponding visible content. A network error may retain old content but is never reported as a successful refresh. In-memory reuse cannot authorize a submission or skip the final checks against GitHub.
 
+The browser development preview uses GitHub's API and public raw-file endpoints instead of a local Git store. It can retain page results during its current session, but cannot restore a desktop library from disk.
+
+## Renderer, links and files
+
+- Electron enables context isolation, sandboxing and web security, with renderer Node.js integration disabled.
+- The preload exposes specific app operations, not arbitrary IPC or filesystem access. The main process checks the sender and validates inputs.
+- The window blocks self-navigation, new windows and permission requests. The main process checks external links before opening the system browser.
+- Allowed hosts are `github.com`, `codeforces.com`, `www.codeforces.com`, `espresso.codeforces.com`, `yawn-sean.github.io` and `docs.github.com`. Codeforces links may use HTTP or HTTPS; the other hosts require HTTPS. Credentials in URLs and unapproved ports are rejected. Valid links keep their original query strings and fragments.
+- The content security policy restricts scripts to app resources and disables plugin objects. Markdown is rendered with restricted React components rather than inserted as raw HTML.
+
+Problem statements open in the system browser. The app does not fetch statement HTML, read that browser's cookies, or pass GitHub tokens to it.
+
+Reference code and imported solutions are read-only text. Highlighting generates text and styles, not executable HTML. The app does not edit, compile or run code. The file picker accepts UTF-8 text within the import size limit and rejects invalid encoding and NUL bytes.
+
+Clipboard writes happen when you request a copy. The dedicated interface checks input and limits it to 1 MiB of UTF-8 text. The app exposes no clipboard-reading or monitoring interface and does not read back the clipboard to verify a write. If copying fails, the text remains available for manual selection.
+
+## Network requests
+
+There is no app account server, usage analytics or crash telemetry. The app uses:
+
+| Service | Purpose |
+| --- | --- |
+| `github.com` | Public Git downloads and device authorization |
+| `api.github.com` | Account information, forks, PR queries and submissions |
+| `raw.githubusercontent.com` | Public files in the browser preview |
+| `avatars.githubusercontent.com` | Profile images |
+| Your default browser | Links you choose to open, including Codeforces problems |
+
+Account and submission API requests carry the access token only to GitHub. Public Git downloads and raw-file reads do not. Authentication and repository requests reject redirects. Errors returned to the renderer are sanitized rather than exposing raw authentication responses.
+
+## Fork and submission boundaries
+
+The upstream provides the library and receives PRs. The source repository stores the submission branch. Published builds use `Yawn-Sean/Daily_CF_Problems` as upstream unless built with explicit alternate configuration. Changing the source binding does not change the upstream.
+
+Binding requires an explicit selection and GitHub verification. The source must belong to the signed-in user, be writable and have the configured upstream as its fork parent or source. If the user owns the upstream, it can be explicitly bound for submissions on independent branches. Read-only candidate discovery never chooses or creates a fork. Invalid or missing bindings stop the flow rather than falling back to another repository.
+
+PR preview reads remote state without publishing code. After confirmation, the app checks the account, source, upstream, problem dates, problem IDs and generated paths again. Fork synchronization uses a non-force fast-forward only when the default branch is strictly behind. Independent commits are preserved; divergence stops submission. New PR branches start from the checked upstream version, so unrelated fork commits are not included.
+
+A submission accepts 1–50 files, at most 256 KiB per file and 5 MiB of normalized code overall. Every path must be unique. Extensions preserve case and may be custom, but cannot contain separators, controls, forbidden filename characters or trailing dots/spaces. Generated filenames are limited to 255 UTF-8 bytes. Imported text must be valid UTF-8 without NUL bytes; submission normalizes the BOM and line endings without editing the original file.
+
+An overwrite requires explicit confirmation for the target path and the old file's Git blob SHA. The backend rereads the remote state before synchronizing the fork or publishing. Missing confirmation or a changed SHA requires a new preview. Queue-item replacement is a separate local decision and does not authorize a remote overwrite. Unchanged files are excluded from the actual PR changes; an entirely unchanged submission cannot create an empty PR.
+
+Publishing prepares Git objects, a tree and a commit before creating a new branch reference and PR. These API calls are not one transaction: a fork fast-forward or branch creation can succeed before a later failure. The app does not automatically delete those results. Retries verify account, repository, parent commit, file content and PR files before returning or continuing the same operation. A matching title, path or client marker alone is not enough. Retries do not edit an already-created PR's title, body, files or branch.
+
+PR templates perform one text substitution pass, without code execution or recursive evaluation. Unknown variables, malformed templates and reserved `daily-cf-` markers are rejected. The final title is limited to 256 characters, and the body to 60,000. Client metadata in the PR and commit helps verify retries; it is public metadata, not an authorization credential.
+
+PR records are queried for the signed-in author and configured upstream, then checked again. Problem associations come from actual changed paths. GitHub limits search to 1,000 PRs and a PR's file list to 3,000 files; the app retains readable results and marks possible incompleteness. Account changes discard the old account's results. Existing PRs remain read-only in the app.
+
+## Reporting a problem
+
+Include the app version, OS, steps to reproduce and a redacted error message. Do not post access tokens, device secrets or session files in public issues. For a vulnerability, use a private contact channel provided by the maintainer. Review the [dependency audit](dependency-audit.md) and [release guide](releasing.md) for the checks run by the project; passing those checks does not establish that the app has no vulnerabilities.
