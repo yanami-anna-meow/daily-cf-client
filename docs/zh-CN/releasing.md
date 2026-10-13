@@ -15,7 +15,7 @@
 | Linux x86_64 | Ubuntu x86_64 | `.AppImage`、`.deb` |
 | Linux arm64 | Ubuntu arm64 | `.AppImage`、`.deb` |
 
-下载说明和安装包文件名统一使用 `x86_64`。Electron 和 electron-builder 的构建参数仍使用 `x64`，DEB 包内部的架构字段仍为 `amd64`。
+安装包文件名统一为 `Daily-CF-<版本>-<系统>-<架构>`，后接包类型和扩展名。系统名称使用 `windows`、`macos`、`linux`，架构名称使用 `x86_64`、`arm64`。Electron 和 electron-builder 的构建参数仍使用 `x64`，DEB 包内部的架构字段仍为 `amd64`。
 
 架构检查会读取打包后程序的可执行文件。交叉构建不等于在目标设备上运行过程序，发布说明应分别记录自动检查、安装测试及尚未测试的范围。
 
