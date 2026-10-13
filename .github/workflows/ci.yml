@@ -20,7 +20,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-24.04]
+        # Use the standard Intel image while hosted macOS arm64 capacity is constrained.
+        os: [windows-latest, macos-15-intel, ubuntu-24.04]
     env:
       DAILY_CF_REPOSITORY: Yawn-Sean/Daily_CF_Problems
     steps:
