@@ -1,0 +1,15 @@
+.local-data-settings { container-type: inline-size; }
+.local-data-rows { display: grid; }
+.local-data-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px 0; }
+.local-data-row:first-child { padding-top: 0; }
+.local-data-row:last-child { padding-bottom: 0; }
+.local-data-row + .local-data-row { border-top: 1px solid var(--line); }
+.local-data-row > div { min-width: 0; }
+.local-data-row h3 { font-size: 12px; font-weight: 600; margin-bottom: 7px; }
+.local-data-row code { display: block; color: var(--soft); font-family: var(--font-code); font-size: 11px; line-height: 1.7; overflow-wrap: anywhere; user-select: text; }
+.local-data-row > button { flex-shrink: 0; }
+.local-data-status { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.local-data-settings > .alert { margin-top: 15px; }
+@container (max-width: 500px) {
+  .local-data-row { align-items: flex-start; flex-direction: column; gap: 12px; }
+}

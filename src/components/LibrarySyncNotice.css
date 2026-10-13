@@ -1,0 +1,15 @@
+.library-sync-notice { display: flex; align-items: center; gap: 9px; margin: -9px 0 20px; padding: 9px 12px; color: var(--soft); border: 1px solid var(--line); border-radius: 9px; font-size: 11px; line-height: 1.55; background: var(--sidebar); }
+.library-sync-notice > svg { flex-shrink: 0; }
+.library-sync-content { display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0; min-height: 20px; }
+.library-sync-summary { display: flex; align-items: center; flex-shrink: 0; gap: 8px; white-space: nowrap; }
+.library-sync-summary time { color: var(--muted); font-variant-numeric: tabular-nums; }
+.library-sync-notice[data-sync-phase='ready'] > svg { color: var(--success); }
+.library-sync-progress { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; max-width: 440px; }
+.library-sync-progress progress { display: block; flex: 1; min-width: 0; width: 220px; max-width: 300px; height: 5px; accent-color: var(--accent); }
+.library-sync-progress span { flex-shrink: 0; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.library-sync-notice .library-sync-refresh { flex-shrink: 0; padding: 0 2px; font-size: inherit; line-height: 20px; }
+.library-sync-error { align-items: flex-start; color: var(--error); background: var(--error-bg); border-color: color-mix(in srgb, var(--error) 25%, transparent); }
+.library-sync-error .library-sync-content { display: block; }
+.library-sync-content > p { margin-top: 3px; overflow-wrap: anywhere; }
+.library-sync-error > svg { margin-top: 2px; }
+@media (max-width: 700px) { .library-sync-notice { margin-top: -3px; padding: 8px 10px; } }
