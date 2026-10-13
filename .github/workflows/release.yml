@@ -89,7 +89,8 @@ jobs:
         run: node -e "if (!process.env.GITHUB_CLIENT_ID?.trim()) throw new Error('Set repository variable DAILY_CF_GITHUB_CLIENT_ID before building installers');"
       - run: npm ci
       - run: npm audit --audit-level=moderate
-      - run: npm test
+      # Limit concurrent TypeScript, packaging, and Git fixtures on shared runners.
+      - run: npm test -- --maxWorkers=2
       - name: Install Linux display dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install --no-install-recommends -y xvfb libgtk-3-0 libnss3 libasound2t64
