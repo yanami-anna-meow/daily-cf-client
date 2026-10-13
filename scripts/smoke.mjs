@@ -29,6 +29,11 @@ child.on('exit', code => {
     if (code !== 0 || !result?.nodeIntegrationOff || result.draftsAvailable !== false
       || !result.remoteContributionsAvailable || !result.batchSubmissionAvailable || !result.noPullRequestMutationAPI || !result.noHandleSubmissionAPI || !result.noDefaultAuthor || result.repository !== expectedRepository
       || result.version !== expectedVersion) throw new Error('Desktop did not report a successful app bootstrap.');
+    const update = result.appUpdateState;
+    if (!result.appUpdateBridgeAvailable || update?.phase !== 'idle' || update.currentVersion !== expectedVersion
+      || update.target?.development !== true || update.target.mode !== 'unsupported' || update.target.packageKind !== 'unknown'
+      || update.release !== undefined || update.progress !== undefined || update.checkedAt !== undefined
+      || update.error !== undefined) throw new Error('Desktop update bridge did not return an untouched development state.');
     writeFileSync('test-results/desktop-smoke.json', JSON.stringify(result, null, 2) + '\n');
     process.exit(0);
   } catch (error) {

@@ -132,6 +132,13 @@ export async function installClientFixture(page) {
     function assertNewTarget(input) { if (input.target?.kind !== 'new') throw new Error('Only new PR creation is supported'); }
     window.dailyCF = {
       isDesktop: !fixtureParams.has('nonDesktop'),
+      getAppUpdateState: async () => ({ phase: 'idle', currentVersion: 'fixture', target: { platform: 'windows', arch: 'x86_64', packageKind: 'nsis', mode: 'installer', development: false } }),
+      checkAppUpdate: async () => ({ phase: 'current', currentVersion: 'fixture', target: { platform: 'windows', arch: 'x86_64', packageKind: 'nsis', mode: 'installer', development: false } }),
+      downloadAppUpdate: async () => { throw new Error('No update selected in this fixture'); },
+      cancelAppUpdate: async () => {},
+      openAppUpdate: async () => { throw new Error('No downloaded update in this fixture'); },
+      revealAppUpdate: async () => { throw new Error('No downloaded update in this fixture'); },
+      onAppUpdate: () => () => {},
       getLocalPaths: async () => { const fixture = window.__uiTest; fixture.localPathsRequests += 1; if (fixture.localPathsFailure) throw new Error('Fixture file locations unavailable'); return structuredClone(fixture.localPaths); },
       openLocalPath: async target => { const fixture = window.__uiTest; fixture.localPathOpenRequests.push(target); await new Promise(resolve => setTimeout(resolve, fixture.localPathOpenDelay)); if (fixture.localPathOpenFailure) throw new Error('Fixture file manager failed'); },
       resolveWindowTransition: async approved => { window.__uiTest.windowTransitions.push(approved); },
