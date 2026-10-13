@@ -1,7 +1,7 @@
 {
   "name": "daily-cf-client",
   "productName": "小羊肖恩的每日一题",
-  "version": "0.3.24",
+  "version": "0.3.25",
   "private": true,
   "description": "A desktop client for Yawn Sean's Daily CF Problems.",
   "homepage": "https://github.com/yanami-anna-meow/daily-cf-client",
