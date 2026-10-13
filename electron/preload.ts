@@ -15,6 +15,13 @@ function subscribe<T>(channel: string, callback: (value: T) => void) {
 }
 const api: ClientAPI = {
   isDesktop: true,
+  getAppUpdateState: () => invoke('app-update-state'),
+  checkAppUpdate: () => invoke('app-update-check'),
+  downloadAppUpdate: () => invoke('app-update-download'),
+  cancelAppUpdate: () => invoke('app-update-cancel'),
+  openAppUpdate: () => invoke('app-update-open'),
+  revealAppUpdate: () => invoke('app-update-reveal'),
+  onAppUpdate: callback => subscribe('daily-cf:app-update', callback),
   bootstrap: async () => {
     const boot = await invoke<BootState>('bootstrap');
     systemLanguages = boot.systemLanguages;

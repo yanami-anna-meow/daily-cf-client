@@ -1,5 +1,6 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, safeStorage, shell, type IpcMainInvokeEvent, type MenuItemConstructorOptions } from 'electron';
 import { join, resolve } from 'node:path';
+import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { GitHubClient } from './github';
 import { GitHubRateLimitGate } from './github-rate-limit';
@@ -21,6 +22,8 @@ import { getLocale, setLocale, t } from '../shared/i18n';
 import { serializeApiError } from '../shared/api-errors';
 import { localLibraryViewInput } from '../shared/library-files';
 import { appearanceBackground } from '../shared/appearance';
+import { AppUpdateService } from './app-updates';
+import { detectAppUpdateTarget } from './app-update-target';
 
 declare const __GITHUB_CLIENT_ID__: string;
 app.commandLine.appendSwitch('disable-http-cache');
@@ -32,6 +35,8 @@ let store: LocalStore;
 let library: LibraryWorkerHost;
 let client: GitHubClient;
 let auth: GitHubAuth;
+let appUpdates: AppUpdateService;
+let openingUpdate = false;
 let token: string | undefined;
 let rateLimitIdentity: string | undefined;
 let rateLimitGate = new GitHubRateLimitGate();
@@ -74,7 +79,10 @@ function resetClients() {
   if (rateLimitIdentity !== token) { rateLimitIdentity = token; rateLimitGate = new GitHubRateLimitGate(); }
   client = new GitHubClient(token, { rateLimitGate, forkRepository: store.data.settings.forkRepository, prTitleTemplate: store.data.settings.prTitleTemplate, prBodyTemplate: store.data.settings.prBodyTemplate });
 }
-function idle() { if (submitting) throw new Error(t('正在提交，请等待当前提交完成后再切换账号或设置。')); }
+function idle() {
+  if (openingUpdate) throw new Error(t('正在打开更新文件，请稍候。'));
+  if (submitting) throw new Error(t('正在提交，请等待当前提交完成后再切换账号或设置。'));
+}
 function invalidateAuthAttempt() { auth.cancel(); authGeneration++; loginAttempt.clear(); }
 function trust(event: IpcMainInvokeEvent) {
   if (!window || event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame) throw new Error(t('不允许的调用来源。'));
@@ -106,6 +114,29 @@ async function signIn(value: string, signal?: AbortSignal) {
 }
 function registerHandlers() {
   handle('bootstrap', () => ({ auth: state(), settings: store.data.settings, defaultClientId: __GITHUB_CLIENT_ID__.trim(), version: app.getVersion(), repository, systemLanguages }));
+  const updateIdle = () => {
+    if (openingUpdate) throw new Error(t('正在打开更新文件，请稍候。'));
+  };
+  handle('app-update-state', () => appUpdates.getState());
+  handle('app-update-check', () => { updateIdle(); return appUpdates.check(); });
+  handle('app-update-download', () => { updateIdle(); return appUpdates.download(); });
+  handle('app-update-cancel', () => { updateIdle(); appUpdates.cancel(); });
+  handle('app-update-open', async () => {
+    updateIdle();
+    if (submitting) throw new Error(t('提交正在进行中，请等待完成后再打开安装包。'));
+    if (appUpdates.getState().target.mode !== 'installer') throw new Error(t('此版本需要替换下载文件，请使用“显示下载文件”。'));
+    openingUpdate = true;
+    try {
+      const filename = await appUpdates.verifiedDownload();
+      const error = await shell.openPath(filename);
+      if (error) throw new Error(t('无法打开安装包：{{error}}', { error }));
+    } finally { openingUpdate = false; }
+  });
+  handle('app-update-reveal', async () => {
+    updateIdle(); openingUpdate = true;
+    try { shell.showItemInFolder(await appUpdates.verifiedDownload()); }
+    finally { openingUpdate = false; }
+  });
   handle('local-paths', () => getLocalPaths(store.directory));
   handle('open-local-path', (target: unknown) => openLocalPath(store.directory, target, shell));
   handle('sync-library', () => library.syncLibrary());
@@ -227,7 +258,14 @@ async function createWindow() {
     const info = await window.webContents.executeJavaScript(`(async () => {
       if (!window.dailyCF?.isDesktop) throw new Error('Sandboxed preload unavailable');
       const boot = await window.dailyCF.bootstrap();
+      const appUpdateBridgeAvailable = ['getAppUpdateState', 'checkAppUpdate', 'downloadAppUpdate',
+        'cancelAppUpdate', 'openAppUpdate', 'revealAppUpdate', 'onAppUpdate']
+        .every(name => typeof window.dailyCF[name] === 'function');
+      if (!appUpdateBridgeAvailable) throw new Error('Application update bridge unavailable');
+      // Reading the initial state must not check, download, or open an update.
+      const appUpdateState = await window.dailyCF.getAppUpdateState();
       return { repository: boot.repository, version: boot.version, account: boot.auth.user?.login || null,
+        appUpdateBridgeAvailable, appUpdateState,
         secureStorage: boot.auth.secureStorage, remoteContributionsAvailable: typeof window.dailyCF.getContributions === 'function',
         externalLinksAvailable: typeof window.dailyCF.openExternal === 'function',
         batchSubmissionAvailable: typeof window.dailyCF.previewBatchSubmission === 'function' && typeof window.dailyCF.submitBatch === 'function' && typeof window.dailyCF.inspectSubmissionFile === 'function',
@@ -238,6 +276,11 @@ async function createWindow() {
         nodeIntegrationOff: typeof window.require === 'undefined', bridge: 'connected' };
     })()`);
     if (!info.nodeIntegrationOff || info.bridge !== 'connected') throw new Error('Desktop isolation failed.');
+    if (!info.appUpdateBridgeAvailable || info.appUpdateState?.phase !== 'idle'
+      || info.appUpdateState.currentVersion !== app.getVersion() || info.appUpdateState.target?.development !== true
+      || info.appUpdateState.target.mode !== 'unsupported' || info.appUpdateState.release !== undefined
+      || info.appUpdateState.progress !== undefined || info.appUpdateState.checkedAt !== undefined
+      || info.appUpdateState.error !== undefined) throw new Error('Application updates did not remain idle in development.');
     console.log(JSON.stringify(info)); app.quit();
   }
 }
@@ -249,6 +292,15 @@ else {
     setLocale('system', systemLanguages);
     store = new LocalStore(join(app.getPath('userData'), UPSTREAM.owner, UPSTREAM.repo), safeStorage, __GITHUB_CLIENT_ID__);
     setLocale(store.data.settings.uiLanguage ?? 'system', systemLanguages);
+    const packageType = process.platform === 'linux' && app.isPackaged
+      ? await readFile(join(process.resourcesPath, 'package-type'), 'utf8').catch(() => '') : '';
+    appUpdates = new AppUpdateService({ currentVersion: app.getVersion(), directory: join(store.directory, 'updates'),
+      target: detectAppUpdateTarget({ platform: process.platform, arch: process.arch, isPackaged: app.isPackaged,
+        portableExecutable: process.env.PORTABLE_EXECUTABLE_FILE, appImage: process.env.APPIMAGE, packageType }),
+      onChange(update) {
+        if (window && !window.isDestroyed() && !window.webContents.isDestroyed()) window.webContents.send('daily-cf:app-update', update);
+      },
+    });
     library = new LibraryWorkerHost(join(store.directory, 'library.git'), { onProgress(progress) {
       if (window && !window.isDestroyed() && !window.webContents.isDestroyed()) window.webContents.send('daily-cf:library-sync', progress);
     } });
@@ -260,6 +312,6 @@ else {
     app.on('activate', () => { if (!window) void createWindow(); });
   }).catch(error => { dialog.showErrorBox(t('启动失败'), error instanceof Error ? error.message : String(error)); app.quit(); });
   app.on('before-quit', () => { windowTransition.requestQuit(); });
-  app.on('will-quit', () => { auth?.cancel(); library?.dispose(); windowTransition.clear(); });
+  app.on('will-quit', () => { auth?.cancel(); library?.dispose(); appUpdates?.dispose(); windowTransition.clear(); });
   app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 }
