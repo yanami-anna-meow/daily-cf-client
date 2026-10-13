@@ -33,7 +33,7 @@ jobs:
         run: node scripts/verify-release.mjs metadata
 
   build:
-    name: Package ${{ matrix.platform }} ${{ matrix.arch }}
+    name: Package ${{ matrix.platform }} ${{ matrix.arch == 'x64' && 'x86_64' || matrix.arch }}
     needs: prepare
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
