@@ -1,0 +1,37 @@
+node_modules/
+dist/
+dist-electron/
+release/
+.env
+.env.*
+!.env.example
+coverage/
+test-results/
+*.log
+.DS_Store
+.cache/
+
+# Machine-local validation reports and historical screenshots stay local.
+/docs/*.json
+/docs/testing.md
+/docs/screenshots/*
+!/docs/screenshots/appearance-home-default-green-light-1440-0.3.16-fixture.png
+!/docs/screenshots/submission-extensions-zh-CN-preview-1440-0.3.21-fixture.png
+!/docs/screenshots/related-pr-zh-CN-card-1440-0.3.20-fixture.png
+
+# One-off integration harnesses tied to the original developer's test account.
+/scripts/integration-smoke.ts
+/scripts/run-integration.mjs
+/scripts/batch-integration-smoke.ts
+/scripts/run-batch-integration.mjs
+/scripts/diagnose-batch-integration.ts
+/scripts/contributions-smoke.ts
+/scripts/run-contributions-smoke.mjs
+/scripts/fork-smoke.ts
+/scripts/run-fork-smoke.mjs
+
+# Credentials and signing identities are never source assets.
+session.enc
+*.pem
+*.p12
+*.pfx
