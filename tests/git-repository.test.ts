@@ -16,6 +16,8 @@ let fixture: Awaited<ReturnType<typeof startGitFixture>>;
 let directory: string;
 let fetcher: typeof fetch;
 
+// Fixture setup starts multiple real Git processes. Allow for process startup
+// on shared Windows runners without increasing test or product sync timeouts.
 beforeEach(async () => {
   fixture = await startGitFixture({
     'README.md': 'Hello repository',
@@ -30,7 +32,7 @@ beforeEach(async () => {
     expect(options?.credentials).toBe('omit');
     return fetch(`${fixture.url}${url.slice(remote.length)}`, options);
   });
-});
+}, 60_000);
 afterEach(async () => { vi.restoreAllMocks(); await fixture?.close(); });
 const create = (options: ConstructorParameters<typeof GitRepository>[1] = {}) => new GitRepository(directory, { repository: 'fixture/library', fetch: fetcher, ...options });
 async function activeGitdir(): Promise<string> {
