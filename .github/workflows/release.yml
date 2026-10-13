@@ -1,8 +1,6 @@
 name: Build desktop installers
 
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
     inputs:
       release_tag:
