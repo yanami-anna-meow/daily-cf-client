@@ -1,7 +1,7 @@
 {
   "name": "daily-cf-client",
   "productName": "小羊肖恩的每日一题",
-  "version": "0.3.22",
+  "version": "0.3.23",
   "private": true,
   "description": "Daily Codeforces practice and contribution desktop client",
   "homepage": "https://github.com/yanami-anna-meow/daily-cf-client",
