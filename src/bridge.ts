@@ -57,7 +57,7 @@ const getDay: ClientAPI['getDay'] = (value, refresh) => readProblemDay(async dat
 }, value, refresh === true);
 const browser: ClientAPI = {
   isDesktop: false,
-  bootstrap: async () => ({ auth: { user: null, configured: false, secureStorage: false }, settings, defaultClientId: '', version: '0.3.22', repository: `${UPSTREAM.owner}/${UPSTREAM.repo}`, systemLanguages }),
+  bootstrap: async () => ({ auth: { user: null, configured: false, secureStorage: false }, settings, defaultClientId: '', version: '0.3.23', repository: `${UPSTREAM.owner}/${UPSTREAM.repo}`, systemLanguages }),
   getDay,
   // The browser preview has no filesystem or Git worker; this remains a fresh
   // read-only API lookup. Only the desktop application maintains a Git mirror.
