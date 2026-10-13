@@ -57,17 +57,17 @@ npm run dist -- --linux --x64 --publish never
 
 [ci.yml](../../.github/workflows/ci.yml) 在 Windows、macOS 和 Ubuntu 上安装依赖、审计、测试并构建。这些检查不需要个人 GitHub 登录，也不向题库写入数据。
 
-[release.yml](../../.github/workflows/release.yml) 支持手动运行和 `v*` 标签触发。运行前在 **Settings → Secrets and variables → Actions → Variables** 中设置公开仓库变量 `DAILY_CF_GITHUB_CLIENT_ID`，工作流会将其传入构建环境变量 `GITHUB_CLIENT_ID`。这里填写 Client ID，不是 Client Secret 或访问令牌；本地 `.env` 仍使用 `GITHUB_CLIENT_ID`。
+[release.yml](../../.github/workflows/release.yml) 从 Actions 页面手动运行。运行前在 **Settings → Secrets and variables → Actions → Variables** 中设置公开仓库变量 `DAILY_CF_GITHUB_CLIENT_ID`，工作流会将其传入构建环境变量 `GITHUB_CLIENT_ID`。这里填写 Client ID，不是 Client Secret 或访问令牌；本地 `.env` 仍使用 `GITHUB_CLIENT_ID`。
 
 发布步骤：
 
 1. 同步更新 `package.json`、锁文件和浏览器预览版本。
 2. 准备英文发布说明，附上中文说明，列出计划提供的安装包。
-3. 检查已提交源码，手动运行工作流时填写匹配的 `release_tag`，如 `0.3.24` 对应 `v0.3.24`。推送该标签也可以触发工作流。
+3. 检查已提交源码，在 Actions 页面选择对应分支，手动运行 **Build desktop installers**，填写匹配的 `release_tag`，如 `0.3.24` 对应 `v0.3.24`。
 4. 等待全部六个构建任务完成。它们会测试源码、打包，并检查目标架构、应用归档和预期文件。
 5. 核对草稿中的产物、SHA-256 校验和、发布说明和测试结果，再正式发布。
 
-工作流将题库固定为 `Yawn-Sean/Daily_CF_Problems`，要求提供发布者 Client ID，并拒绝与 `package.json` 不一致的版本标签。手动运行必须填写 `release_tag`。两种触发方式都会保存构建产物，全部目标成功后才创建发布草稿，不会自动公开。草稿使用 `docs/releases/` 中对应版本的说明。
+工作流将题库固定为 `Yawn-Sean/Daily_CF_Problems`，要求提供发布者 Client ID，并拒绝与 `package.json` 不一致的 `release_tag`。工作流会保存构建产物，全部目标成功后才创建发布草稿，由维护者手动发布。草稿对应本次运行选定的确切提交，并使用 `docs/releases/` 中对应版本的说明。创建版本标签或发布草稿不会再次触发构建。
 
 Windows x64、macOS x64 和 Linux x64/arm64 任务还会启动实际打包程序，检查启动和预加载接口。Windows arm64 与 macOS arm64 使用交叉构建，执行架构及归档检查。这些检查不覆盖安装向导或已登录的 GitHub 会话。
 
