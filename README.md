@@ -16,11 +16,11 @@ Get the package for your computer from the [latest release](https://github.com/y
 
 | System | Architecture | Packages |
 | --- | --- | --- |
-| Windows | x64 — most Intel and AMD PCs | NSIS installer or portable `.exe` |
+| Windows | x86_64 — most Intel and AMD PCs | NSIS installer or portable `.exe` |
 | Windows | arm64 — Windows on Arm | NSIS installer or portable `.exe` |
-| macOS | x64 — Intel | `.dmg` or `.zip` |
+| macOS | x86_64 — Intel | `.dmg` or `.zip` |
 | macOS | arm64 — Apple Silicon | `.dmg` or `.zip` |
-| Linux | x64 | `.AppImage` or `.deb` |
+| Linux | x86_64 | `.AppImage` or `.deb` |
 | Linux | arm64 | `.AppImage` or `.deb` |
 
 File names include the version and architecture. Each release lists its available packages and checksums. Packaged apps include the Git functionality they need; you do not need to install Git or Node.js.

@@ -16,11 +16,11 @@
 
 | 系统 | 架构 | 安装包 |
 | --- | --- | --- |
-| Windows | x64，大多数 Intel、AMD 电脑 | NSIS 安装版或免安装 `.exe` |
+| Windows | x86_64，大多数 Intel、AMD 电脑 | NSIS 安装版或免安装 `.exe` |
 | Windows | arm64，Windows on Arm 设备 | NSIS 安装版或免安装 `.exe` |
-| macOS | x64，Intel 芯片 | `.dmg` 或 `.zip` |
+| macOS | x86_64，Intel 芯片 | `.dmg` 或 `.zip` |
 | macOS | arm64，Apple Silicon 芯片 | `.dmg` 或 `.zip` |
-| Linux | x64 | `.AppImage` 或 `.deb` |
+| Linux | x86_64 | `.AppImage` 或 `.deb` |
 | Linux | arm64 | `.AppImage` 或 `.deb` |
 
 文件名中包含版本和架构，各版本的发布页面会列出实际提供的文件及校验和。客户端已包含所需的 Git 功能，使用安装包无需另装 Git 或 Node.js。

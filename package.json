@@ -29,8 +29,8 @@
     "test:ui": "node scripts/ui-smoke.mjs",
     "test:corpus": "node scripts/audit-corpus.mjs",
     "start": "electron .",
-    "pack": "npm run build && electron-builder --dir --config.electronDist=node_modules/electron/dist",
-    "dist": "npm run build && electron-builder",
+    "pack": "npm run build && node scripts/package.mjs --dir --config.electronDist=node_modules/electron/dist",
+    "dist": "npm run build && node scripts/package.mjs",
     "dist:win": "npm run dist -- --win --x64 --config.electronDist=node_modules/electron/dist"
   },
   "dependencies": {
