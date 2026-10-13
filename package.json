@@ -1,9 +1,9 @@
 {
   "name": "daily-cf-client",
   "productName": "小羊肖恩的每日一题",
-  "version": "0.3.23",
+  "version": "0.3.24",
   "private": true,
-  "description": "Daily Codeforces practice and contribution desktop client",
+  "description": "A desktop client for Yawn Sean's Daily CF Problems.",
   "homepage": "https://github.com/yanami-anna-meow/daily-cf-client",
   "repository": {
     "type": "git",
