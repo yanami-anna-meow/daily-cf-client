@@ -25,7 +25,7 @@ Get the package for your computer from the [latest release](https://github.com/y
 
 File names include the version and architecture. Each release lists its available packages and checksums. Packaged apps include the Git functionality they need; you do not need to install Git or Node.js.
 
-The current packages are unsigned, and macOS packages are not notarized. Your operating system may show a security prompt. Read the release notes for the checks completed on that version; a successful build does not mean every installer has been tested on a physical machine.
+Windows packages are unsigned. macOS apps are ad-hoc signed, without an Apple Developer ID or notarization. Your operating system may show a security prompt. Read the release notes for the checks completed on that version; a successful build does not mean every installer has been tested on a physical machine.
 
 ## What it does
 
